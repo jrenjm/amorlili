@@ -274,24 +274,53 @@ for(let i=1;i<=50;i++){
   img.src=path;
 }
 
-// === Movimiento del mouse ===
-let dragging=false,lastX=0,lastY=0;
-canvas.addEventListener("mousedown",e=>{
-  dragging=true;lastX=e.clientX;lastY=e.clientY;
+let dragging = false, lastX = 0, lastY = 0;
+
+// 🖱️ Eventos para PC
+canvas.addEventListener("mousedown", e => {
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
 });
-canvas.addEventListener("mouseup",()=>dragging=false);
-canvas.addEventListener("mousemove",e=>{
-  if(!dragging)return;
-  const dx=e.clientX-lastX,dy=e.clientY-lastY;
-  rotY-=dx*0.005;
-  rotX-=dy*0.005;
-  rotX=Math.max(-Math.PI/2,Math.min(Math.PI/2,rotX));
-  lastX=e.clientX;lastY=e.clientY;
+canvas.addEventListener("mouseup", () => dragging = false);
+canvas.addEventListener("mouseleave", () => dragging = false);
+canvas.addEventListener("mousemove", e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  rotY -= dx * 0.005;
+  rotX -= dy * 0.005;
+  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+  lastX = e.clientX;
+  lastY = e.clientY;
 });
-canvas.addEventListener("wheel",e=>{
-  targetDist+=e.deltaY*0.3;
-  targetDist=Math.max(100,Math.min(1000,targetDist));
+
+// 📱 Eventos para pantallas táctiles
+canvas.addEventListener("touchstart", e => {
+  dragging = true;
+  const touch = e.touches[0];
+  lastX = touch.clientX;
+  lastY = touch.clientY;
+}, { passive: true });
+
+canvas.addEventListener("touchend", () => dragging = false, { passive: true });
+
+canvas.addEventListener("touchmove", e => {
+  if (!dragging) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - lastX, dy = touch.clientY - lastY;
+  rotY -= dx * 0.005;
+  rotX -= dy * 0.005;
+  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+  lastX = touch.clientX;
+  lastY = touch.clientY;
+}, { passive: true });
+
+// 🔍 Zoom con scroll (PC)
+canvas.addEventListener("wheel", e => {
+  targetDist += e.deltaY * 0.3;
+  targetDist = Math.max(100, Math.min(1000, targetDist));
 });
+
 // 💓 Animación de latido sincronizado (corazón + texto)
 let heartPulse = 0;
 
