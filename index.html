@@ -106,10 +106,14 @@ let isPlaying = false;
 let currentSong = 0;
 
 // 🎵 Lista de canciones
+// 🎵 Lista de canciones (ubicadas en la carpeta playlist/)
 const songs = [
-  { name: "Only - LILIANA", src: "https://jrenjm.github.io/amorlili/Only.mp3" },
-  { name: "LIVE FOREVER (Español) - OASIS", src: "https://jrenjm.github.io/amorlili/LIVE%20FOREVER(Español)-OASIS.mp3" },
+  { name: "Only - LILIANA", src: "playlist/Only.mp3" },
+  { name: "LIVE FOREVER (Español) - OASIS", src: "playlist/LIVE FOREVER (Español) - OASIS.mp3" },
+  // 👇 puedes agregar más canciones así:
+  // { name: "Nombre de la canción", src: "playlist/NOMBREDELARCHIVO.mp3" },
 ];
+
 
 // Carga la canción actual
 function loadSong(index) {
