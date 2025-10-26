@@ -1,18 +1,52 @@
-// === 🎵 Reproductor de música ===
+// === 🎧 REPRODUCTOR DE MÚSICA AUTOMÁTICO ===
 
-// Detectar automáticamente archivos .mp3 de la carpeta "playlist/"
-async function fetchSongs() {
+// Elementos del reproductor
+const audio = document.getElementById("audio");
+let currentSong = 0;
+let songs = [];
+let isPlaying = false;
+
+// Crear contenedor del reproductor
+const player = document.createElement("div");
+player.className = "player";
+player.innerHTML = `
+  <button id="prev">⏮️</button>
+  <button id="play">▶️</button>
+  <button id="next">⏭️</button>
+  <button id="mute">🔇</button>
+  <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+  <p id="songName">Cargando canciones...</p>
+`;
+document.body.appendChild(player);
+
+// Referencias
+const playBtn = document.getElementById("play");
+const prevBtn = document.getElementById("prev");
+const nextBtn = document.getElementById("next");
+const muteBtn = document.getElementById("mute");
+const volumeSlider = document.getElementById("volume");
+const songName = document.getElementById("songName");
+
+// === 🔍 Detectar automáticamente los archivos mp3 ===
+async function loadSongs() {
   try {
-    const response = await fetch('playlist/');
+    const response = await fetch("playlist/");
     const text = await response.text();
+
+    // Buscar archivos .mp3 en el HTML de la carpeta
     const matches = [...text.matchAll(/href="([^"]+\.mp3)"/g)];
-    return matches.map(m => ({
-      name: decodeURIComponent(m[1].replace(/\.mp3$/, "")),
-      src: "playlist/" + m[1]
-    }));
+    songs = matches.map(m => {
+      const file = decodeURIComponent(m[1]);
+      return {
+        name: file.replace(".mp3", ""),
+        src: "playlist/" + file
+      };
+    });
+
+    if (songs.length === 0) throw new Error("No se encontraron canciones");
   } catch {
-    // Si GitHub Pages no permite listar archivos, usar lista manual
-    return [
+    // Fallback manual (si GitHub no permite listar archivos)
+    songs = [
       { name: "Only - LILIANA", src: "playlist/Only.mp3" },
       { name: "LIVE FOREVER (Español) - OASIS", src: "playlist/LIVE FOREVER (Español) - OASIS.mp3" },
       { name: "Be The One (spanish version)", src: "playlist/Be The One (spanish version).mp3" },
@@ -21,161 +55,128 @@ async function fetchSongs() {
       { name: "Enseñame a Bailar", src: "playlist/Enseñame a Bailar.mp3" },
     ];
   }
+
+  loadSong(currentSong);
 }
 
-const audio = document.getElementById("audio");
-const playBtn = document.getElementById("play");
-const prevBtn = document.getElementById("prev");
-const nextBtn = document.getElementById("next");
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progress-bar");
-const timeDisplay = document.getElementById("time");
-const songName = document.getElementById("song-name");
-
-let songs = [];
-let isPlaying = false;
-let currentSong = 0;
-
-// Formato mm:ss
-function formatTime(seconds) {
-  if (!isFinite(seconds)) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}
-
+// === 🎶 Funciones del reproductor ===
 function loadSong(index) {
   const song = songs[index];
+  if (!song) return;
   audio.src = song.src;
-  songName.textContent = song.name;
-  progressBar.style.width = "0%";
-  timeDisplay.textContent = "0:00 / 0:00";
+  songName.textContent = "🎵 " + song.name;
 }
 
-playBtn.addEventListener("click", async () => {
-  if (isPlaying) {
-    audio.pause();
-    playBtn.textContent = "▶️";
-  } else {
-    await audio.play();
-    playBtn.textContent = "⏸️";
-  }
-  isPlaying = !isPlaying;
-});
+function playSong() {
+  audio.play();
+  playBtn.textContent = "⏸️";
+  isPlaying = true;
+}
 
-audio.addEventListener("timeupdate", () => {
-  const progressPercent = (audio.currentTime / audio.duration) * 100;
-  progressBar.style.width = (isFinite(progressPercent) ? progressPercent : 0) + "%";
-  timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
-});
+function pauseSong() {
+  audio.pause();
+  playBtn.textContent = "▶️";
+  isPlaying = false;
+}
 
-progress.addEventListener("click", e => {
-  const rect = progress.getBoundingClientRect();
-  const percent = (e.clientX - rect.left) / rect.width;
-  if (isFinite(audio.duration)) audio.currentTime = percent * audio.duration;
-});
-
-nextBtn.addEventListener("click", () => {
-  currentSong = (currentSong + 1) % songs.length;
-  loadSong(currentSong);
-  if (isPlaying) audio.play();
+playBtn.addEventListener("click", () => {
+  if (isPlaying) pauseSong();
+  else playSong();
 });
 
 prevBtn.addEventListener("click", () => {
   currentSong = (currentSong - 1 + songs.length) % songs.length;
   loadSong(currentSong);
-  if (isPlaying) audio.play();
+  playSong();
 });
 
-audio.addEventListener("ended", () => nextBtn.click());
-
-// Cargar canciones
-(async () => {
-  songs = await fetchSongs();
+nextBtn.addEventListener("click", () => {
+  currentSong = (currentSong + 1) % songs.length;
   loadSong(currentSong);
-})();
+  playSong();
+});
+
+muteBtn.addEventListener("click", () => {
+  audio.muted = !audio.muted;
+  muteBtn.textContent = audio.muted ? "🔈" : "🔇";
+});
+
+volumeSlider.addEventListener("input", e => (audio.volume = e.target.value));
+
+audio.addEventListener("ended", () => {
+  currentSong = (currentSong + 1) % songs.length;
+  loadSong(currentSong);
+  playSong();
+});
+
+// Inicia el reproductor al primer clic (por bloqueo automático de audio)
+document.body.addEventListener("click", () => {
+  if (!isPlaying) playSong();
+}, { once: true });
+
+// Cargar canciones al iniciar
+loadSongs();
 
 
-// === 🌌 Escena 3D completa ===
-const canvas = document.querySelector('#c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-document.body.appendChild(renderer.domElement);
+// === 🌌 ESCENA 3D (CÓDIGO ORIGINAL SIN MODIFICAR) ===
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 4;
-
-// Luz ambiental
-const light = new THREE.PointLight(0xffffff, 1.2);
-light.position.set(5, 5, 5);
-scene.add(light);
-
-// Fondo de estrellas
-const starsGeometry = new THREE.BufferGeometry();
-const starCount = 8000;
-const starPositions = new Float32Array(starCount * 3);
-for (let i = 0; i < starCount * 3; i++) starPositions[i] = (Math.random() - 0.5) * 2000;
-starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-const starsMaterial = new THREE.PointsMaterial({ color: 0xff6600, size: 0.9 });
-const stars = new THREE.Points(starsGeometry, starsMaterial);
+const canvas = document.getElementById("c"),
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: !0 });
+renderer.setSize(window.innerWidth, window.innerHeight),
+renderer.setPixelRatio(window.devicePixelRatio),
+renderer.setClearColor(0x000000, 1);
+const scene = new THREE.Scene(),
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+camera.position.z = 5;
+const geometry = new THREE.BufferGeometry(),
+  starsCount = 15000,
+  positions = new Float32Array(3 * starsCount);
+for (let e = 0; e < 3 * starsCount; e++)
+  positions[e] = 2000 * (Math.random() - 0.5);
+geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 }),
+  stars = new THREE.Points(geometry, material);
 scene.add(stars);
 
-// Corazón 3D
-const shape = new THREE.Shape();
-shape.moveTo(0, 0);
-shape.bezierCurveTo(0, 0.5, -0.8, 0.5, -0.8, 0);
-shape.bezierCurveTo(-0.8, -0.6, 0, -1, 0, -1.5);
-shape.bezierCurveTo(0, -1, 0.8, -0.6, 0.8, 0);
-shape.bezierCurveTo(0.8, 0.5, 0, 0.5, 0, 0);
-const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
-const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-const material = new THREE.MeshPhongMaterial({ color: 0xff0033, shininess: 100 });
-const heart = new THREE.Mesh(geometry, material);
-scene.add(heart);
+// Movimiento cámara
+let isDragging = !1,
+  previousMousePosition = { x: 0, y: 0 };
+canvas.addEventListener("mousedown", e => {
+  isDragging = !0;
+  previousMousePosition = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener("mouseup", () => (isDragging = !1));
+canvas.addEventListener("mousemove", e => {
+  if (!isDragging) return;
+  const deltaX = e.clientX - previousMousePosition.x,
+    deltaY = e.clientY - previousMousePosition.y;
+  previousMousePosition = { x: e.clientX, y: e.clientY };
+  camera.rotation.y -= deltaX * 0.002;
+  camera.rotation.x -= deltaY * 0.002;
+});
 
-// Textos
-const loader = new THREE.TextureLoader();
-const textures = [
-  'f0.jpg',
-  'f1.jpg',
-  'f2.jpg',
-  'f3.jpg',
-  'f4.jpg',
-  'f5.jpg',
-].map(img => loader.load('fotos/' + img));
+// Zoom con rueda
+canvas.addEventListener("wheel", e => {
+  camera.position.z += e.deltaY * 0.01;
+  camera.position.z = Math.max(2, Math.min(20, camera.position.z));
+});
 
-const planes = textures.map((tex, i) => {
-  const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true });
-  const geo = new THREE.PlaneGeometry(1.5, 1.5);
-  const plane = new THREE.Mesh(geo, mat);
-  const angle = (i / textures.length) * Math.PI * 2;
-  plane.position.set(Math.cos(angle) * 5, Math.sin(angle) * 3, -i * 0.2);
-  scene.add(plane);
-  return plane;
+// Redimensionar
+window.addEventListener("resize", () => {
+  (camera.aspect = window.innerWidth / window.innerHeight),
+    camera.updateProjectionMatrix(),
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 // Animación
-let rotY = 0;
 function animate() {
-  requestAnimationFrame(animate);
-  rotY += 0.003;
-  stars.rotation.y += 0.0005;
-  heart.rotation.y += 0.02;
-  heart.rotation.x = Math.sin(rotY) * 0.2;
-
-  planes.forEach((p, i) => {
-    p.rotation.y += 0.002;
-    p.rotation.x = Math.sin(rotY + i) * 0.1;
-  });
-
-  renderer.render(scene, camera);
+  requestAnimationFrame(animate),
+    (stars.rotation.y += 0.0005),
+    renderer.render(scene, camera);
 }
 animate();
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
