@@ -76,10 +76,14 @@ canvas{display:block}
 <canvas id=c></canvas>
 
 <div class="player">
-  <button id=play>▶️</button>
-  <div class="progress" id=progress><div class="progress-bar" id=progress-bar></div></div>
-  <div class="time" id=time>0:00 / 0:00</div>
+  <button id="prev">⏮️</button>
+  <button id="play">▶️</button>
+  <button id="next">⏭️</button>
+  <div id="song-name" style="font-size:13px;white-space:nowrap;text-shadow:0 0 8px #ff6600;">Only - LILIANA</div>
+  <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="time" id="time">0:00 / 0:00</div>
 </div>
+
 
 <audio id=audio loop>
   <source src="https://jrenjm.github.io/amorlili/Only.mp3" type="audio/mpeg">
@@ -88,28 +92,89 @@ canvas{display:block}
 <script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"></script>
 
 <script>
-// === Reproductor ===
-const audio=document.getElementById("audio"),
-playBtn=document.getElementById("play"),
-progress=document.getElementById("progress"),
-progressBar=document.getElementById("progress-bar"),
-timeDisplay=document.getElementById("time");
-let isPlaying=!1;
-function formatTime(e){if(!isFinite(e))return"0:00";return Math.floor(e/60)+":"+Math.floor(e%60).toString().padStart(2,"0")}
-playBtn.addEventListener("click",async()=>{
-  isPlaying?(audio.pause(),playBtn.textContent="▶️"):(await audio.play(),playBtn.textContent="⏸️");
-  isPlaying=!isPlaying;
+// === Reproductor con control de canciones ===
+const audio = document.getElementById("audio"),
+  playBtn = document.getElementById("play"),
+  prevBtn = document.getElementById("prev"),
+  nextBtn = document.getElementById("next"),
+  progress = document.getElementById("progress"),
+  progressBar = document.getElementById("progress-bar"),
+  timeDisplay = document.getElementById("time"),
+  songName = document.getElementById("song-name");
+
+let isPlaying = false;
+let currentSong = 0;
+
+// 🎵 Lista de canciones
+const songs = [
+  { name: "Only - LILIANA", src: "https://jrenjm.github.io/amorlili/Only.mp3" },
+  { name: "LIVE FOREVER (Español) - OASIS", src: "https://jrenjm.github.io/amorlili/LIVE%20FOREVER(Español)-OASIS.mp3" },
+];
+
+// Carga la canción actual
+function loadSong(index) {
+  const song = songs[index];
+  audio.src = song.src;
+  songName.textContent = song.name;
+  progressBar.style.width = "0%";
+  timeDisplay.textContent = "0:00 / 0:00";
+}
+
+// Convierte segundos a formato mm:ss
+function formatTime(seconds) {
+  if (!isFinite(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+// Play / Pause
+playBtn.addEventListener("click", async () => {
+  if (isPlaying) {
+    audio.pause();
+    playBtn.textContent = "▶️";
+  } else {
+    await audio.play();
+    playBtn.textContent = "⏸️";
+  }
+  isPlaying = !isPlaying;
 });
-audio.addEventListener("timeupdate",()=>{
-  const e=audio.currentTime/audio.duration*100;
-  progressBar.style.width=(isFinite(e)?e:0)+"%";
-  timeDisplay.textContent=formatTime(audio.currentTime)+" / "+formatTime(audio.duration);
+
+// Actualiza barra de progreso y tiempo
+audio.addEventListener("timeupdate", () => {
+  const progressPercent = (audio.currentTime / audio.duration) * 100;
+  progressBar.style.width = (isFinite(progressPercent) ? progressPercent : 0) + "%";
+  timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
 });
-progress.addEventListener("click",e=>{
-  const t=progress.getBoundingClientRect(),
-  n=(e.clientX-t.left)/t.width;
-  isFinite(audio.duration)&&(audio.currentTime=n*audio.duration);
+
+// Saltar a parte del audio
+progress.addEventListener("click", e => {
+  const rect = progress.getBoundingClientRect();
+  const percent = (e.clientX - rect.left) / rect.width;
+  if (isFinite(audio.duration)) audio.currentTime = percent * audio.duration;
 });
+
+// Botón siguiente
+nextBtn.addEventListener("click", () => {
+  currentSong = (currentSong + 1) % songs.length;
+  loadSong(currentSong);
+  if (isPlaying) audio.play();
+});
+
+// Botón anterior
+prevBtn.addEventListener("click", () => {
+  currentSong = (currentSong - 1 + songs.length) % songs.length;
+  loadSong(currentSong);
+  if (isPlaying) audio.play();
+});
+
+// Reproducir automáticamente la siguiente canción al terminar
+audio.addEventListener("ended", () => {
+  nextBtn.click();
+});
+
+// Carga inicial
+loadSong(currentSong);
 
 // === Escena ===
 const canvas=document.getElementById("c"),
