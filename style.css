@@ -2,11 +2,11 @@ body,html{
   margin:0;
   height:100%;
   background:#000;
-  overflow:hidden;
+  overflow:hidden
 }
 
 canvas{
-  display:block;
+  display:block
 }
 
 .player{
@@ -22,27 +22,27 @@ canvas{
   padding:10px;
   border:2px solid #f60;
   border-radius:999px;
-  background:transparent;
+  background:0 0;
   box-shadow:0 0 15px #f60,0 0 30px #f30;
   z-index:1000;
   font-family:Arial,sans-serif;
   color:#fff;
-  font-size:14px;
+  font-size:14px
 }
 
 .player button{
-  background:transparent;
+  background:0 0;
   border:none;
   color:#fff;
   font-size:22px;
   cursor:pointer;
   filter:drop-shadow(0 0 6px #ff6600);
-  transition:transform .2s;
+  transition:transform .2s
 }
 
 .player button:hover{
   transform:scale(1.2);
-  filter:drop-shadow(0 0 10px #ff3300);
+  filter:drop-shadow(0 0 10px #ff3300)
 }
 
 .progress{
@@ -52,7 +52,7 @@ canvas{
   border-radius:999px;
   overflow:hidden;
   cursor:pointer;
-  position:relative;
+  position:relative
 }
 
 .progress-bar{
@@ -62,7 +62,7 @@ canvas{
   background-size:400% 400%;
   border-radius:999px;
   box-shadow:0 0 10px #f60;
-  animation:flowing 6s ease infinite;
+  animation:flowing 6s ease infinite
 }
 
 @keyframes flowing{
@@ -76,5 +76,5 @@ canvas{
   text-align:right;
   font-size:12px;
   color:#fff;
-  text-shadow:0 0 5px #f60;
+  text-shadow:0 0 5px #f60
 }
