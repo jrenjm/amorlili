@@ -11,7 +11,7 @@ const audio = document.getElementById("audio"),
 let isPlaying = false;
 let currentSong = 0;
 
-// 🎵 Lista de canciones (ubicadas en la carpeta playlist/)
+// 🎵 Lista de canciones
 const songs = [
   { name: "Only", src: "playlist/Only.mp3" },
   { name: "LIVE FOREVER(Español)-OASIS", src: "playlist/LIVE FOREVER(Español)-OASIS.mp3" },
@@ -19,11 +19,8 @@ const songs = [
   {name:"Tattoo(Cover Español)",src:"playlist/Tattoo(Cover Español).mp3"},
   {name:"Baile Inolvidable",src:"playlist/Baile Inolvidable.mp3"},
   {name:"Enseñame a Bailar",src:"playlist/Enseñame a Bailar.mp3"},
-  // 👇 puedes agregar más canciones así:
-  // { name: "Nombre de la canción", src: "playlist/NOMBREDELARCHIVO.mp3" },
 ];
 
-// Carga la canción actual
 function loadSong(index) {
   const song = songs[index];
   audio.src = song.src;
@@ -32,7 +29,6 @@ function loadSong(index) {
   timeDisplay.textContent = "0:00 / 0:00";
 }
 
-// Convierte segundos a formato mm:ss
 function formatTime(seconds) {
   if (!isFinite(seconds)) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -40,7 +36,6 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
-// Play / Pause
 playBtn.addEventListener("click", async () => {
   if (isPlaying) {
     audio.pause();
@@ -52,206 +47,292 @@ playBtn.addEventListener("click", async () => {
   isPlaying = !isPlaying;
 });
 
-// Actualiza barra de progreso y tiempo
 audio.addEventListener("timeupdate", () => {
   const progressPercent = (audio.currentTime / audio.duration) * 100;
   progressBar.style.width = (isFinite(progressPercent) ? progressPercent : 0) + "%";
   timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
 });
 
-// Saltar a parte del audio
 progress.addEventListener("click", e => {
   const rect = progress.getBoundingClientRect();
   const percent = (e.clientX - rect.left) / rect.width;
   if (isFinite(audio.duration)) audio.currentTime = percent * audio.duration;
 });
 
-// Botón siguiente
 nextBtn.addEventListener("click", () => {
   currentSong = (currentSong + 1) % songs.length;
   loadSong(currentSong);
   if (isPlaying) audio.play();
 });
 
-// Botón anterior
 prevBtn.addEventListener("click", () => {
   currentSong = (currentSong - 1 + songs.length) % songs.length;
   loadSong(currentSong);
   if (isPlaying) audio.play();
 });
 
-// Reproducir automáticamente la siguiente canción al terminar
 audio.addEventListener("ended", () => {
   nextBtn.click();
 });
 
-// Carga inicial
 loadSong(currentSong);
 
-// === Escena ===
-const canvas=document.getElementById("c"),
-renderer=new THREE.WebGLRenderer({canvas,antialias:!0});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
-renderer.setSize(innerWidth,innerHeight);
-const scene=new THREE.Scene(),
-camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,5000);
-let targetDist=300,currentDist=300,rotX=.2,rotY=0;
+// === Escena THREE.JS ===
+const canvas = document.getElementById("c"),
+renderer = new THREE.WebGLRenderer({canvas, antialias: true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(innerWidth, innerHeight);
+
+const scene = new THREE.Scene(),
+camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
+
+// 🎮 Control de cámara con movimiento libre
+let cameraPos = {x: 0, y: 0, z: 600};
+let cameraVelocity = {x: 0, y: 0, z: 0};
+let cameraRotation = {yaw: 0, pitch: 0};
 
 // === Fondo espacial ===
-const loader=new THREE.TextureLoader;
+const loader = new THREE.TextureLoader();
 const nebulaTex = loader.load("https://jrenjm.github.io/amorlili/space.jpg");
-scene.background=nebulaTex;
+scene.background = nebulaTex;
 
-// === Estrellas ===
-(function(e=2000,t=3000){
-  const n=new THREE.BufferGeometry,a=new Float32Array(3*e);
-  for(let n=0;n<e;n++){
-    const e=t*(.3+.7*Math.random()),r=Math.random()*Math.PI*2,i=Math.acos(2*Math.random()-1);
-    a[3*n+0]=e*Math.sin(i)*Math.cos(r),
-    a[3*n+1]=e*Math.cos(i),
-    a[3*n+2]=e*Math.sin(i)*Math.sin(r)
+// === Estrellas de fondo ===
+(function(count = 5000, spread = 10000) {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(3 * count);
+  for (let i = 0; i < count; i++) {
+    const radius = spread * (0.3 + 0.7 * Math.random());
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[3 * i + 0] = radius * Math.sin(phi) * Math.cos(theta);
+    positions[3 * i + 1] = radius * Math.cos(phi);
+    positions[3 * i + 2] = radius * Math.sin(phi) * Math.sin(theta);
   }
-  n.setAttribute("position",new THREE.BufferAttribute(a,3));
-  scene.add(new THREE.Points(n,new THREE.PointsMaterial({size:1.5,color:0xffffff,depthWrite:!1})))
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({
+    size: 2,
+    color: 0xffffff,
+    depthWrite: false
+  })));
 })();
 
-// === Grupo principal (corazón + texto) ===
-const loveGroup = new THREE.Group();
-scene.add(loveGroup);
-
-// === Corazón 3D centrado ===
-const heartShape = new THREE.Shape();
-heartShape.moveTo(0, 0);
-heartShape.bezierCurveTo(0, 3, -3, 3, -3, 0);
-heartShape.bezierCurveTo(-3, -3, 0, -3.5, 0, -6);
-heartShape.bezierCurveTo(0, -3.5, 3, -3, 3, 0);
-heartShape.bezierCurveTo(3, 3, 0, 3, 0, 0);
-
-const extrudeSettings = {
-  depth: 2,
-  bevelEnabled: true,
-  bevelSegments: 3,
-  steps: 2,
-  bevelSize: 0.4,
-  bevelThickness: 0.4
-};
-
-const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
-heartGeometry.center();
-
-const heartMaterial = new THREE.MeshPhongMaterial({
-  color: 0xff3366,
-  shininess: 300,
-  emissive: 0xaa0022,
-  specular: 0xffffff,
-  transparent: true,
-  opacity: 1
-});
-
-const heartMesh = new THREE.Mesh(heartGeometry, heartMaterial);
-heartMesh.scale.set(6, 6, 6);
-loveGroup.add(heartMesh);
-
-// === Texto central ===
-function makeCenterTextTexture(e){
-  const t = document.createElement("canvas");
-  t.width = 4096;   // 🔹 ancho grande para evitar recortes
-  t.height = 1024;  // 🔹 alto para buena resolución
-  const n = t.getContext("2d");
-  n.clearRect(0, 0, t.width, t.height);
-  n.font = "bold 500px Arial";  // 🔹 texto grande
-  n.textAlign = "center";
-  n.textBaseline = "middle";
-  n.fillStyle = "#ff0033";
-  n.shadowColor = "#ff66aa";
-  n.shadowBlur = 60;
-  n.fillText(e, t.width / 2, t.height / 2);
-  return new THREE.CanvasTexture(t);
-}
-
-const centerTex = makeCenterTextTexture("TE AMO LILIANA "),
-centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false }),
-centerSprite = new THREE.Sprite(centerMat);
-centerSprite.scale.set(90, 40, 1);   // 🔹 tamaño visible
-centerSprite.position.set(0, 40, 0); // 🔹 encima del corazón
-loveGroup.add(centerSprite);
-
-// === Luz y anillos ===
-scene.add(new THREE.PointLight(0xff8888,1,500));
-const ring1=new THREE.Mesh(new THREE.RingGeometry(60,80,128),new THREE.MeshBasicMaterial({color:0xffaa88,transparent:!0,opacity:0.5,side:THREE.DoubleSide}));
-const ring2=new THREE.Mesh(new THREE.RingGeometry(85,100,128),new THREE.MeshBasicMaterial({color:0xff8866,transparent:!0,opacity:0.3,side:THREE.DoubleSide}));
-ring1.rotation.x=ring2.rotation.x=Math.PI/2;
-scene.add(ring1);
-scene.add(ring2);
-
-// === Palabras flotantes ===
-const WORDS=[],baseWords=[
-"💖 Mi amor","🌞 Mi sol","🌎 Mi mundo","✨ Brillas","❤️ Te amo","🌌 Universo","👑 Reina","🌠 Estrella","💫 Mi cielo","🔥 Siempre tú","🎶 Tu risa","🦋 Libertad",
-"💎 Eres todo","🙏 Gracias","💕 Cariño","🌹 Amor eterno","🤗 Abrazos","🌸 Esperanza","🌈 Alegría","🌟 Contigo","🧸 Ternura","🎁 Mi razón","🌙 Mi destino",
-"💌 Recuerdos","🕊️ Mi paz","🪐 Mi universo","🌊 Mi calma","💡 Mi luz","🍒 Dulzura","🥰 Mi vida","🎇 Felicidad","🌻 Alegría","🌺 Mi flor","💜 Eternidad",
-"🌟 Sueños","✨ Magia","🎵 Canción","🔥 Pasión","⭐ Mi estrella","🌴 Mi paraíso","🌄 Amanecer","🌃 Noche contigo","🎉 Mi fiesta","💫 Inspiración",
-"🎀 Mi ternura","🍀 Mi fortuna","🪞 Mi princesa"
+// 🌌 PALABRAS BONITAS (mínimo 60 por galaxia)
+const ALL_WORDS = [
+  "💖 Mi amor", "🌞 Mi sol", "🌎 Mi mundo", "✨ Brillas", "❤️ Te amo", "🌌 Universo",
+  "👑 Mi reina", "🌠 Estrella", "💫 Mi cielo", "🔥 Siempre tú", "🎶 Tu risa", "🦋 Libertad",
+  "💎 Eres todo", "🙏 Gracias", "💕 Cariño", "🌹 Amor eterno", "🤗 Abrazos", "🌸 Esperanza",
+  "🌈 Alegría", "🌟 Contigo", "🧸 Ternura", "🎁 Mi razón", "🌙 Mi destino", "💌 Recuerdos",
+  "🕊️ Mi paz", "🪐 Mi universo", "🌊 Mi calma", "💡 Mi luz", "🍒 Dulzura", "🥰 Mi vida",
+  "🎇 Felicidad", "🌻 Alegría", "🌺 Mi flor", "💜 Eternidad", "🌟 Sueños", "✨ Magia",
+  "🎵 Canción", "🔥 Pasión", "⭐ Mi estrella", "🌴 Mi paraíso", "🌄 Amanecer", "🌃 Noche contigo",
+  "🎉 Mi fiesta", "💫 Inspiración", "🎀 Mi ternura", "🍀 Mi fortuna", "🪞 Mi princesa",
+  "🌷 Hermosa", "💝 Regalo", "🎊 Celebración", "🦄 Única", "🌼 Primavera", "🎭 Mi arte",
+  "🍓 Dulce amor", "🎸 Mi melodía", "🌿 Naturaleza", "🔮 Magia pura", "🎪 Mi circo", "🏰 Mi castillo",
+  "🌅 Resplandor", "🪄 Hechizo", "🎻 Sinfonía", "🌑 Mi luna", "☄️ Cometa", "🌪️ Torbellino",
+  "🏔️ Mi cima", "🗻 Mi monte", "🏖️ Mi playa", "🎨 Mi color", "📿 Conexión", "🧿 Protección",
+  "💒 Templo", "🕌 Sagrado", "⛪ Bendición", "🎆 Fuegos", "🎑 Contemplar", "🗼 Torre",
+  "🗽 Libertad", "🗿 Eterno", "⚡ Energía", "🌪️ Fuerza", "❄️ Pureza", "☀️ Calidez"
 ];
-for(let e=0;e<6;e++)WORDS.push(...baseWords);
-function makeTextTexture(e,t){
-  const n=document.createElement("canvas");
-  n.width=512;n.height=128;
-  const a=n.getContext("2d");
-  a.clearRect(0,0,n.width,n.height);
-  a.font="bold 60px Arial";
-  a.textAlign="center";
-  a.textBaseline="middle";
-  a.fillStyle="#fff";
-  a.shadowColor=t;
-  a.shadowBlur=30;
-  a.fillText(e,n.width/2,n.height/2);
-  return new THREE.CanvasTexture(n);
-}
-const COLORS=["#ff66ff","#66ccff","#ffd36b","#ff9966","#8df59a","#ffa0f8","#c6a7ff","#ff4444","#44ff99","#99ccff"],
-textGroup=new THREE.Group;
-scene.add(textGroup);
-for(let e=0;e<WORDS.length;e++){
-  const t=makeTextTexture(WORDS[e],COLORS[e%COLORS.length]),
-  n=new THREE.SpriteMaterial({map:t,transparent:!0}),
-  a=new THREE.Sprite(n);
-  a.scale.set(50,16,1);
-  const r=Math.acos(2*Math.random()-1),
-  i=Math.random()*Math.PI*2,
-  o=150+120*Math.random();
-  a.position.set(o*Math.sin(r)*Math.cos(i),o*Math.cos(r),o*Math.sin(r)*Math.sin(i));
-  a.userData={phi:r,theta:i,radius:o,speed:.001+.001*Math.random()};
-  textGroup.add(a);
+
+// 🌌 CONFIGURACIÓN DE GALAXIAS
+const galaxies = [];
+const totalPhotos = 100;
+const photosPerGalaxy = 20;
+
+// Mezclar fotos aleatoriamente
+const shuffledPhotos = [];
+for (let i = 1; i <= totalPhotos; i++) shuffledPhotos.push(i);
+for (let i = shuffledPhotos.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
 }
 
-// === Fotos flotantes ===
-const imageGroup=new THREE.Group();
-scene.add(imageGroup);
-const imgLoader=new THREE.TextureLoader();
-for(let i=1;i<=100;i++){
-  const path=`https://jrenjm.github.io/amorlili/recuerdos/f${i}.jpg`;
-  const img=new Image();
-  img.onload=()=>{
-    const texture=imgLoader.load(path);
-    const mat=new THREE.SpriteMaterial({map:texture,transparent:true});
-    const sprite=new THREE.Sprite(mat);
-    sprite.scale.set(40,40,1);
-    const phi=Math.acos(2*Math.random()-1),
-          theta=Math.random()*Math.PI*2,
-          radius=180+120*Math.random();
-    sprite.position.set(
-      radius*Math.sin(phi)*Math.cos(theta),
-      radius*Math.cos(phi),
-      radius*Math.sin(phi)*Math.sin(theta)
-    );
-    sprite.userData={phi,theta,radius,speed:0.001+0.001*Math.random()};
-    imageGroup.add(sprite);
+// Posiciones de las galaxias con textos únicos
+const galaxyPositions = [
+  {x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA"},
+  {x: 1500, y: 300, z: -800, color: 0xff66ff, name: "TE QUIERO LILIANA"},
+  {x: -1200, y: -400, z: 1000, color: 0x66ccff, name: "ERES LA MÁS HERMOSA"},
+  {x: 800, y: -600, z: 1500, color: 0xffd36b, name: "MI PRINCESA LILIANA"},
+  {x: -1600, y: 500, z: -600, color: 0xff9966, name: "ERES MI TODO LILIANA"}
+];
+
+// === Función para crear una galaxia ===
+function createGalaxy(position, colorHex, galaxyIndex, textContent) {
+  const galaxyGroup = new THREE.Group();
+  galaxyGroup.position.set(position.x, position.y, position.z);
+  
+  // === Corazón 3D ===
+  const heartShape = new THREE.Shape();
+  heartShape.moveTo(0, 0);
+  heartShape.bezierCurveTo(0, 3, -3, 3, -3, 0);
+  heartShape.bezierCurveTo(-3, -3, 0, -3.5, 0, -6);
+  heartShape.bezierCurveTo(0, -3.5, 3, -3, 3, 0);
+  heartShape.bezierCurveTo(3, 3, 0, 3, 0, 0);
+
+  const extrudeSettings = {
+    depth: 2,
+    bevelEnabled: true,
+    bevelSegments: 3,
+    steps: 2,
+    bevelSize: 0.4,
+    bevelThickness: 0.4
   };
-  img.src=path;
+
+  const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+  heartGeometry.center();
+
+  const heartMaterial = new THREE.MeshPhongMaterial({
+    color: colorHex,
+    shininess: 300,
+    emissive: colorHex,
+    emissiveIntensity: 0.3,
+    specular: 0xffffff,
+    transparent: true,
+    opacity: 1
+  });
+
+  const heartMesh = new THREE.Mesh(heartGeometry, heartMaterial);
+  heartMesh.scale.set(8, 8, 8);
+  galaxyGroup.add(heartMesh);
+
+  // === Texto central ===
+  function makeTextTexture(text) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 4096;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "bold 500px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
+    ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
+    ctx.shadowBlur = 60;
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  const centerTex = makeTextTexture(textContent);
+  const centerMat = new THREE.SpriteMaterial({map: centerTex, transparent: true, depthTest: false});
+  const centerSprite = new THREE.Sprite(centerMat);
+  centerSprite.scale.set(120, 50, 1);
+  centerSprite.position.set(0, 50, 0);
+  galaxyGroup.add(centerSprite);
+
+  // === Luz ===
+  const light = new THREE.PointLight(colorHex, 1.5, 800);
+  galaxyGroup.add(light);
+
+  // === Anillos ===
+  const ring1 = new THREE.Mesh(
+    new THREE.RingGeometry(80, 100, 128),
+    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+  );
+  const ring2 = new THREE.Mesh(
+    new THREE.RingGeometry(110, 130, 128),
+    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.2, side: THREE.DoubleSide})
+  );
+  ring1.rotation.x = ring2.rotation.x = Math.PI / 2;
+  galaxyGroup.add(ring1);
+  galaxyGroup.add(ring2);
+
+  // === Palabras flotantes (mínimo 60) ===
+  function makeWordTexture(text, color) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "bold 60px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#fff";
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 30;
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
+  const textGroup = new THREE.Group();
+
+  // Crear mínimo 60 palabras flotantes
+  for (let i = 0; i < 60; i++) {
+    const word = ALL_WORDS[i % ALL_WORDS.length];
+    const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
+    const material = new THREE.SpriteMaterial({map: texture, transparent: true});
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(50, 16, 1);
+    const phi = Math.acos(2 * Math.random() - 1);
+    const theta = Math.random() * Math.PI * 2;
+    const radius = 150 + 120 * Math.random();
+    sprite.position.set(
+      radius * Math.sin(phi) * Math.cos(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+    );
+    sprite.userData = {phi, theta, radius, speed: 0.001 + 0.001 * Math.random()};
+    textGroup.add(sprite);
+  }
+  galaxyGroup.add(textGroup);
+
+  // === Fotos flotantes (aleatorias, sin repetir) ===
+  const imageGroup = new THREE.Group();
+  const startIndex = galaxyIndex * photosPerGalaxy;
+  const endIndex = Math.min(startIndex + photosPerGalaxy, totalPhotos);
+  const galaxyPhotos = shuffledPhotos.slice(startIndex, endIndex);
+
+  const imgLoader = new THREE.TextureLoader();
+  galaxyPhotos.forEach(photoNum => {
+    const path = `https://jrenjm.github.io/amorlili/recuerdos/f${photoNum}.jpg`;
+    const img = new Image();
+    img.onload = () => {
+      const texture = imgLoader.load(path);
+      const mat = new THREE.SpriteMaterial({map: texture, transparent: true});
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(40, 40, 1);
+      const phi = Math.acos(2 * Math.random() - 1);
+      const theta = Math.random() * Math.PI * 2;
+      const radius = 180 + 120 * Math.random();
+      sprite.position.set(
+        radius * Math.sin(phi) * Math.cos(theta),
+        radius * Math.cos(phi),
+        radius * Math.sin(phi) * Math.sin(theta)
+      );
+      sprite.userData = {phi, theta, radius, speed: 0.001 + 0.001 * Math.random()};
+      imageGroup.add(sprite);
+    };
+    img.src = path;
+  });
+  galaxyGroup.add(imageGroup);
+
+  scene.add(galaxyGroup);
+
+  return {
+    group: galaxyGroup,
+    heart: heartMesh,
+    text: centerSprite,
+    ring1,
+    ring2,
+    textGroup,
+    imageGroup
+  };
 }
+
+// Crear todas las galaxias
+for (let i = 0; i < galaxyPositions.length; i++) {
+  const pos = galaxyPositions[i];
+  const galaxy = createGalaxy(pos, pos.color, i, pos.name);
+  galaxies.push(galaxy);
+}
+
+// 🎮 CONTROLES DE MOVIMIENTO LIBRE
+const keys = {};
+window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
 let dragging = false, lastX = 0, lastY = 0;
 
-// 🖱️ Eventos para PC
 canvas.addEventListener("mousedown", e => {
   dragging = true;
   lastX = e.clientX;
@@ -261,129 +342,153 @@ canvas.addEventListener("mouseup", () => dragging = false);
 canvas.addEventListener("mouseleave", () => dragging = false);
 canvas.addEventListener("mousemove", e => {
   if (!dragging) return;
-  const dx = e.clientX - lastX, dy = e.clientY - lastY;
-  rotY -= dx * 0.005;
-  rotX -= dy * 0.005;
-  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  cameraRotation.yaw -= dx * 0.003;
+  cameraRotation.pitch -= dy * 0.003;
+  cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
-// 📱 Eventos para pantallas táctiles
+// 📱 Controles táctiles
 canvas.addEventListener("touchstart", e => {
   dragging = true;
   const touch = e.touches[0];
   lastX = touch.clientX;
   lastY = touch.clientY;
-}, { passive: true });
+}, {passive: true});
 
-canvas.addEventListener("touchend", () => dragging = false, { passive: true });
+canvas.addEventListener("touchend", () => dragging = false, {passive: true});
 
 canvas.addEventListener("touchmove", e => {
   if (!dragging) return;
   const touch = e.touches[0];
-  const dx = touch.clientX - lastX, dy = touch.clientY - lastY;
-  rotY -= dx * 0.005;
-  rotX -= dy * 0.005;
-  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+  const dx = touch.clientX - lastX;
+  const dy = touch.clientY - lastY;
+  cameraRotation.yaw -= dx * 0.003;
+  cameraRotation.pitch -= dy * 0.003;
+  cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
   lastX = touch.clientX;
   lastY = touch.clientY;
-}, { passive: true });
+}, {passive: true});
 
-// 📱 Zoom con gesto de pinza (pinch-zoom en móviles)
-let pinchDist = 0;
-
-canvas.addEventListener("touchmove", e => {
-  // Si hay dos dedos en pantalla, es un gesto de zoom
-  if (e.touches.length === 2) {
-    e.preventDefault();
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const newDist = Math.sqrt(dx * dx + dy * dy);
-
-    if (pinchDist !== 0) {
-      const delta = pinchDist - newDist;
-      targetDist += delta * 0.8; // sensibilidad del zoom
-      targetDist = Math.max(100, Math.min(1000, targetDist)); // límites
-    }
-    pinchDist = newDist;
-  } else if (e.touches.length === 1 && dragging) {
-    // arrastre normal con un solo dedo
-    const touch = e.touches[0];
-    const dx = touch.clientX - lastX, dy = touch.clientY - lastY;
-    rotY -= dx * 0.005;
-    rotX -= dy * 0.005;
-    rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
-    lastX = touch.clientX;
-    lastY = touch.clientY;
-  }
-}, { passive: false });
-
-canvas.addEventListener("touchend", e => {
-  if (e.touches.length < 2) pinchDist = 0;
-}, { passive: true });
-
-// 🔍 Zoom con scroll (PC)
+// 🔍 Zoom con scroll
 canvas.addEventListener("wheel", e => {
-  targetDist += e.deltaY * 0.3;
-  targetDist = Math.max(100, Math.min(1000, targetDist));
+  const forward = new THREE.Vector3(
+    Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
+    Math.sin(cameraRotation.pitch),
+    Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
+  );
+  const zoomSpeed = e.deltaY * 0.5;
+  cameraPos.x += forward.x * zoomSpeed;
+  cameraPos.y += forward.y * zoomSpeed;
+  cameraPos.z += forward.z * zoomSpeed;
 });
 
-// 💓 Animación de latido sincronizado (corazón + texto)
+// 💓 Animación de latidos
 let heartPulse = 0;
-
-function animateHeart() {
+function animateHearts() {
   heartPulse += 0.05;
-
-  // Efecto de latido del corazón
-  if (typeof heartMesh !== "undefined" && heartMesh) {
-    const heartScale = 6 + Math.sin(heartPulse) * 0.4;
-    heartMesh.scale.set(heartScale, heartScale, heartScale);
-  }
-
-  // Efecto sincronizado del texto
-  if (typeof centerSprite !== "undefined" && centerSprite) {
-    const textScaleX = 90 + Math.sin(heartPulse) * 6;
-    const textScaleY = 40 + Math.sin(heartPulse) * 3;
-    centerSprite.scale.set(textScaleX, textScaleY, 1);
-    centerSprite.material.opacity = 0.85 + Math.sin(heartPulse) * 0.15;
-  }
-
-  requestAnimationFrame(animateHeart);
+  galaxies.forEach(galaxy => {
+    const heartScale = 8 + Math.sin(heartPulse) * 0.5;
+    galaxy.heart.scale.set(heartScale, heartScale, heartScale);
+    
+    const textScaleX = 120 + Math.sin(heartPulse) * 8;
+    const textScaleY = 50 + Math.sin(heartPulse) * 4;
+    galaxy.text.scale.set(textScaleX, textScaleY, 1);
+    galaxy.text.material.opacity = 0.85 + Math.sin(heartPulse) * 0.15;
+  });
+  requestAnimationFrame(animateHearts);
 }
-animateHeart();
+animateHearts();
 
-// === Animación ===
-let t=0;
-function tick(){
+// === Loop de animación principal ===
+let t = 0;
+function tick() {
   requestAnimationFrame(tick);
-  t+=.01;
-  ring1.rotation.z+=.002;
-  ring2.rotation.z-=.0015;
-  textGroup.children.forEach(e=>{
-    e.material.opacity=.8+.2*Math.sin(2*t);
-    e.userData.theta+=e.userData.speed;
-    e.position.x=e.userData.radius*Math.sin(e.userData.phi)*Math.cos(e.userData.theta);
-    e.position.z=e.userData.radius*Math.sin(e.userData.phi)*Math.sin(e.userData.theta);
-  });
-  imageGroup.children.forEach(e=>{
-    e.material.opacity=.9+.1*Math.sin(2*t);
-    e.userData.theta+=e.userData.speed;
-    e.position.x=e.userData.radius*Math.sin(e.userData.phi)*Math.cos(e.userData.theta);
-    e.position.z=e.userData.radius*Math.sin(e.userData.phi)*Math.sin(e.userData.theta);
-  });
-  currentDist += 0.06 * (targetDist - currentDist);
-const n = Math.cos(rotX),
-      a = Math.sin(rotX),
-      r = Math.cos(rotY),
-      i = Math.sin(rotY);
+  t += 0.01;
 
-// 🌀 Movimiento de la cámara (alrededor del centro)
-camera.position.set(currentDist * i * n, currentDist * a, currentDist * r * n);
-camera.lookAt(0, 0, 0);
+  // 🎮 Movimiento de cámara con teclado (WASD + Flechas)
+  const moveSpeed = 5;
+  const forward = new THREE.Vector3(
+    Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
+    Math.sin(cameraRotation.pitch),
+    Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
+  );
+  const right = new THREE.Vector3(
+    Math.sin(cameraRotation.yaw + Math.PI / 2),
+    0,
+    Math.cos(cameraRotation.yaw + Math.PI / 2)
+  );
 
-// 💞 Hace que el corazón + texto siempre miren a la cámara (como uno solo)
-loveGroup.lookAt(camera.position);
-renderer.render(scene, camera);
+  if (keys['w'] || keys['arrowup']) {
+    cameraPos.x += forward.x * moveSpeed;
+    cameraPos.y += forward.y * moveSpeed;
+    cameraPos.z += forward.z * moveSpeed;
+  }
+  if (keys['s'] || keys['arrowdown']) {
+    cameraPos.x -= forward.x * moveSpeed;
+    cameraPos.y -= forward.y * moveSpeed;
+    cameraPos.z -= forward.z * moveSpeed;
+  }
+  if (keys['a'] || keys['arrowleft']) {
+    cameraPos.x -= right.x * moveSpeed;
+    cameraPos.z -= right.z * moveSpeed;
+  }
+  if (keys['d'] || keys['arrowright']) {
+    cameraPos.x += right.x * moveSpeed;
+    cameraPos.z += right.z * moveSpeed;
+  }
+  if (keys[' ']) cameraPos.y += moveSpeed;
+  if (keys['shift']) cameraPos.y -= moveSpeed;
+
+  // Actualizar posición de cámara
+  camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
+  
+  const lookAt = new THREE.Vector3(
+    cameraPos.x + forward.x * 100,
+    cameraPos.y + forward.y * 100,
+    cameraPos.z + forward.z * 100
+  );
+  camera.lookAt(lookAt);
+
+  // Animar cada galaxia
+  galaxies.forEach(galaxy => {
+    galaxy.ring1.rotation.z += 0.002;
+    galaxy.ring2.rotation.z -= 0.0015;
+
+    galaxy.textGroup.children.forEach(sprite => {
+      sprite.material.opacity = 0.8 + 0.2 * Math.sin(2 * t);
+      sprite.userData.theta += sprite.userData.speed;
+      sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
+      sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
+    });
+
+    galaxy.imageGroup.children.forEach(sprite => {
+      sprite.material.opacity = 0.9 + 0.1 * Math.sin(2 * t);
+      sprite.userData.theta += sprite.userData.speed;
+      sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
+      sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
+    });
+
+    // Hacer que corazón y texto miren a la cámara
+    galaxy.group.children.forEach(child => {
+      if (child instanceof THREE.Mesh || child instanceof THREE.Sprite) {
+        if (child.geometry && child.geometry.type !== "RingGeometry") {
+          child.lookAt(camera.position);
+        }
+      }
+    });
+  });
+
+  renderer.render(scene, camera);
 }
 tick();
+
+// Responsive
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
