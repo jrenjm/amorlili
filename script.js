@@ -19,6 +19,7 @@ const songs = [
   {name:"Tattoo(Cover Español)",src:"playlist/Tattoo(Cover Español).mp3"},
   {name:"Baile Inolvidable",src:"playlist/Baile Inolvidable.mp3"},
   {name:"Enseñame a Bailar",src:"playlist/Enseñame a Bailar.mp3"},
+  {name:"ODESZA-A Moment Apart",src:"ODESZA-A Moment Apart.mp3"},
 ];
 
 function loadSong(index) {
