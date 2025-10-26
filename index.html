@@ -5,37 +5,35 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <title>TE AMO LILIANA <3</title>
 
-<!-- Vista previa al compartir -->
+<!-- Etiquetas para vista previa -->
 <meta property="og:title" content="TE AMO LILIANA ❤️">
 <meta property="og:description" content="Una galaxia de amor solo para ti 💫">
 <meta property="og:image" content="https://jrenjm.github.io/amorlili/f0.jpg">
 <meta property="og:url" content="https://jrenjm.github.io/amorlili/">
 <meta property="og:type" content="website">
 
-<!-- Estilos -->
+<!-- Enlaces -->
 <link rel="stylesheet" href="style.css">
-
-<!-- Librería Three.js -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"></script>
 </head>
 
 <body>
 <canvas id="c"></canvas>
 
-<!-- 🎵 Reproductor -->
 <div class="player">
   <button id="prev">⏮️</button>
   <button id="play">▶️</button>
   <button id="next">⏭️</button>
   <div id="song-name" style="font-size:13px;white-space:nowrap;text-shadow:0 0 8px #ff6600;">Cargando...</div>
-  <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="progress" id="progress">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
   <div class="time" id="time">0:00 / 0:00</div>
 </div>
 
-<!-- Elemento de audio oculto -->
+<!-- Reproductor -->
 <audio id="audio"></audio>
 
-<!-- Script principal -->
-<script src="main.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
