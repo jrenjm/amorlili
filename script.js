@@ -1,3 +1,6 @@
+// Log para confirmar que el script se carga
+console.log("Script loaded");
+
 // === Reproductor con control de canciones ===
 const audio = document.getElementById("audio"),
   playBtn = document.getElementById("play"),
@@ -13,13 +16,13 @@ let currentSong = 0;
 
 // 🎵 Lista de canciones
 const songs = [
-  { name: "Only", src: "playlist/Only.mp3" },
-  { name: "LIVE FOREVER(Español)-OASIS", src: "playlist/LIVE FOREVER(Español)-OASIS.mp3" },
-  {name: "Be The One (spanish version)",src:"playlist/Be The One (spanish version).mp3"},
-  {name:"Tattoo(Cover Español)",src:"playlist/Tattoo(Cover Español).mp3"},
-  {name:"Baile Inolvidable",src:"playlist/Baile Inolvidable.mp3"},
-  {name:"Enseñame a Bailar",src:"playlist/Enseñame a Bailar.mp3"},
-  {name:"ODESZA - A Moment Apart",src:"playlist/ODESZA-A Moment Apart.mp3"},
+  { name: "Only", src: "./playlist/Only.mp3" }, // Paths relativos para pruebas locales
+  { name: "LIVE FOREVER(Español)-OASIS", src: "./playlist/LIVE FOREVER(Español)-OASIS.mp3" },
+  { name: "Be The One (spanish version)", src: "./playlist/Be The One (spanish version).mp3" },
+  { name: "Tattoo(Cover Español)", src: "./playlist/Tattoo(Cover Español).mp3" },
+  { name: "Baile Inolvidable", src: "./playlist/Baile Inolvidable.mp3" },
+  { name: "Enseñame a Bailar", src: "./playlist/Enseñame a Bailar.mp3" },
+  { name: "ODESZA - A Moment Apart", src: "./playlist/ODESZA - A Moment Apart.mp3" },
 ];
 
 function loadSong(index) {
@@ -42,8 +45,12 @@ playBtn.addEventListener("click", async () => {
     audio.pause();
     playBtn.textContent = "▶️";
   } else {
-    await audio.play();
-    playBtn.textContent = "⏸️";
+    try {
+      await audio.play();
+      playBtn.textContent = "⏸️";
+    } catch (error) {
+      console.error("Error playing audio:", error);
+    }
   }
   isPlaying = !isPlaying;
 });
@@ -80,25 +87,36 @@ loadSong(currentSong);
 
 // === Escena THREE.JS ===
 const canvas = document.getElementById("c"),
-renderer = new THREE.WebGLRenderer({canvas, antialias: true});
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(innerWidth, innerHeight);
 
 const scene = new THREE.Scene(),
-camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
+  camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
 
 // 🎮 Control de cámara con movimiento libre
-let cameraPos = {x: 0, y: 0, z: 600};
-let cameraVelocity = {x: 0, y: 0, z: 0};
-let cameraRotation = {yaw: 0, pitch: 0};
+let cameraPos = { x: 0, y: 0, z: 2000 }; // Ajustado para ver la galaxia en (0, 0, 0)
+let cameraVelocity = { x: 0, y: 0, z: 0 };
+let cameraRotation = { yaw: Math.PI, pitch: 0 }; // Mira hacia el origen
+
+// === Iluminación global (nuevo) ===
+const ambient = new THREE.AmbientLight(0xffffff, 0.3); // Luz ambiental suave
+scene.add(ambient);
 
 // === Fondo espacial ===
 const loader = new THREE.TextureLoader();
-const nebulaTex = loader.load("https://jrenjm.github.io/amorlili/space.jpg");
-scene.background = nebulaTex;
+loader.load(
+  "https://jrenjm.github.io/amorlili/space.jpg", // Cambia a "./space.jpg" para pruebas locales
+  texture => { scene.background = texture; },
+  undefined,
+  error => {
+    console.error("Error loading background:", error);
+    scene.background = new THREE.Color(0x111111); // Fallback gris oscuro
+  }
+);
 
 // === Estrellas de fondo ===
-(function(count = 8000, spread = 12000) {
+(function (count = 8000, spread = 12000) {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(3 * count);
   for (let i = 0; i < count; i++) {
@@ -164,16 +182,16 @@ for (let i = shuffledPhotos.length - 1; i > 0; i--) {
 
 // Posiciones de las galaxias con textos únicos (solo 3)
 const galaxyPositions = [
-  {x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA"},
-  {x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO"},
-  {x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA"}
+  { x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA" },
+  { x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO" },
+  { x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA" }
 ];
 
 // === Función para crear una galaxia ===
 function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const galaxyGroup = new THREE.Group();
   galaxyGroup.position.set(position.x, position.y, position.z);
-  
+
   // === Corazón 3D ===
   const heartShape = new THREE.Shape();
   heartShape.moveTo(0, 0);
@@ -226,7 +244,7 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   }
 
   const centerTex = makeTextTexture(textContent);
-  const centerMat = new THREE.SpriteMaterial({map: centerTex, transparent: true, depthTest: false});
+  const centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false });
   const centerSprite = new THREE.Sprite(centerMat);
   centerSprite.scale.set(120, 50, 1);
   centerSprite.position.set(0, 50, 0);
@@ -239,15 +257,15 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   // === Anillos giratorios con efecto 3D ===
   const ring1 = new THREE.Mesh(
     new THREE.RingGeometry(80, 100, 128),
-    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.5, side: THREE.DoubleSide})
+    new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
   );
   const ring2 = new THREE.Mesh(
     new THREE.RingGeometry(110, 130, 128),
-    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
+    new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
   );
   const ring3 = new THREE.Mesh(
     new THREE.RingGeometry(140, 160, 128),
-    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.2, side: THREE.DoubleSide})
+    new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
   );
   ring1.rotation.x = ring2.rotation.x = ring3.rotation.x = Math.PI / 2;
   galaxyGroup.add(ring1);
@@ -274,11 +292,10 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
   const textGroup = new THREE.Group();
 
-  // Crear mínimo 200 palabras flotantes girando
   for (let i = 0; i < 200; i++) {
     const word = ALL_WORDS[i % ALL_WORDS.length];
     const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
-    const material = new THREE.SpriteMaterial({map: texture, transparent: true});
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(45, 14, 1);
     const phi = Math.acos(2 * Math.random() - 1);
@@ -289,7 +306,7 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
       radius * Math.cos(phi),
       radius * Math.sin(phi) * Math.sin(theta)
     );
-    sprite.userData = {phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random()};
+    sprite.userData = { phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random() };
     textGroup.add(sprite);
   }
   galaxyGroup.add(textGroup);
@@ -302,25 +319,28 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
 
   const imgLoader = new THREE.TextureLoader();
   galaxyPhotos.forEach(photoNum => {
-    const path = `https://jrenjm.github.io/amorlili/recuerdos/f${photoNum}.jpg`;
-    const img = new Image();
-    img.onload = () => {
-      const texture = imgLoader.load(path);
-      const mat = new THREE.SpriteMaterial({map: texture, transparent: true});
-      const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(40, 40, 1);
-      const phi = Math.acos(2 * Math.random() - 1);
-      const theta = Math.random() * Math.PI * 2;
-      const radius = 180 + 120 * Math.random();
-      sprite.position.set(
-        radius * Math.sin(phi) * Math.cos(theta),
-        radius * Math.cos(phi),
-        radius * Math.sin(phi) * Math.sin(theta)
-      );
-      sprite.userData = {phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random()};
-      imageGroup.add(sprite);
-    };
-    img.src = path;
+    const path = `https://jrenjm.github.io/amorlili/recuerdos/f${photoNum}.jpg`; // Cambia a `./recuerdos/f${photoNum}.jpg` para local
+    console.log(`Loading image: ${path}`); // Depurar
+    imgLoader.load(
+      path,
+      texture => {
+        const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(40, 40, 1);
+        const phi = Math.acos(2 * Math.random() - 1);
+        const theta = Math.random() * Math.PI * 2;
+        const radius = 180 + 120 * Math.random();
+        sprite.position.set(
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
+        );
+        sprite.userData = { phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random() };
+        imageGroup.add(sprite);
+      },
+      undefined,
+      error => console.error(`Error loading image f${photoNum}.jpg:`, error)
+    );
   });
   galaxyGroup.add(imageGroup);
 
@@ -362,12 +382,12 @@ const saturnMesh = new THREE.Mesh(saturnGeometry, saturnMaterial);
 saturn.add(saturnMesh);
 const saturnRing = new THREE.Mesh(
   new THREE.RingGeometry(70, 90, 64),
-  new THREE.MeshBasicMaterial({color: 0xffaaee, transparent: true, opacity: 0.6, side: THREE.DoubleSide})
+  new THREE.MeshBasicMaterial({ color: 0xffaaee, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
 );
 saturnRing.rotation.x = Math.PI / 2.5;
 saturn.add(saturnRing);
 scene.add(saturn);
-celestialObjects.push({mesh: saturn, type: 'saturn', speed: 0.001});
+celestialObjects.push({ mesh: saturn, type: 'saturn', speed: 0.001 });
 
 // Planeta 2: Júpiter azul con textura de bandas
 const jupiter = new THREE.Group();
@@ -382,7 +402,7 @@ const jupiterMaterial = new THREE.MeshPhongMaterial({
 const jupiterMesh = new THREE.Mesh(jupiterGeometry, jupiterMaterial);
 jupiter.add(jupiterMesh);
 scene.add(jupiter);
-celestialObjects.push({mesh: jupiter, type: 'jupiter', speed: 0.0008});
+celestialObjects.push({ mesh: jupiter, type: 'jupiter', speed: 0.0008 });
 
 // Planeta 3: Planeta con anillo vertical
 const uranus = new THREE.Group();
@@ -398,12 +418,12 @@ const uranusMesh = new THREE.Mesh(uranusGeometry, uranusMaterial);
 uranus.add(uranusMesh);
 const uranusRing = new THREE.Mesh(
   new THREE.RingGeometry(55, 65, 64),
-  new THREE.MeshBasicMaterial({color: 0x88ffdd, transparent: true, opacity: 0.5, side: THREE.DoubleSide})
+  new THREE.MeshBasicMaterial({ color: 0x88ffdd, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
 );
 uranusRing.rotation.y = Math.PI / 2;
 uranus.add(uranusRing);
 scene.add(uranus);
-celestialObjects.push({mesh: uranus, type: 'uranus', speed: 0.0012});
+celestialObjects.push({ mesh: uranus, type: 'uranus', speed: 0.0012 });
 
 // Planeta 4: Luna pequeña brillante
 const moon = new THREE.Group();
@@ -420,7 +440,7 @@ moon.add(moonMesh);
 const moonLight = new THREE.PointLight(0xffff88, 0.8, 400);
 moon.add(moonLight);
 scene.add(moon);
-celestialObjects.push({mesh: moon, type: 'moon', speed: 0.002});
+celestialObjects.push({ mesh: moon, type: 'moon', speed: 0.002 });
 
 // Planeta 5: Planeta rocoso rojo
 const mars = new THREE.Group();
@@ -435,7 +455,7 @@ const marsMaterial = new THREE.MeshPhongMaterial({
 const marsMesh = new THREE.Mesh(marsGeometry, marsMaterial);
 mars.add(marsMesh);
 scene.add(mars);
-celestialObjects.push({mesh: mars, type: 'mars', speed: 0.0015});
+celestialObjects.push({ mesh: mars, type: 'mars', speed: 0.0015 });
 
 // Nebulosa 1: Nube de partículas púrpura
 const nebula1 = new THREE.Group();
@@ -458,7 +478,7 @@ const nebulaMaterial1 = new THREE.PointsMaterial({
 const nebulaPoints1 = new THREE.Points(nebulaGeometry1, nebulaMaterial1);
 nebula1.add(nebulaPoints1);
 scene.add(nebula1);
-celestialObjects.push({mesh: nebula1, type: 'nebula', speed: 0.0005});
+celestialObjects.push({ mesh: nebula1, type: 'nebula', speed: 0.0005 });
 
 // Nebulosa 2: Nube de partículas verde
 const nebula2 = new THREE.Group();
@@ -481,7 +501,7 @@ const nebulaMaterial2 = new THREE.PointsMaterial({
 const nebulaPoints2 = new THREE.Points(nebulaGeometry2, nebulaMaterial2);
 nebula2.add(nebulaPoints2);
 scene.add(nebula2);
-celestialObjects.push({mesh: nebula2, type: 'nebula', speed: 0.0006});
+celestialObjects.push({ mesh: nebula2, type: 'nebula', speed: 0.0006 });
 
 // Asteroide 1: Forma irregular con rotación
 const asteroid1 = new THREE.Group();
@@ -496,7 +516,7 @@ const asteroidMaterial1 = new THREE.MeshPhongMaterial({
 const asteroidMesh1 = new THREE.Mesh(asteroidGeometry1, asteroidMaterial1);
 asteroid1.add(asteroidMesh1);
 scene.add(asteroid1);
-celestialObjects.push({mesh: asteroid1, type: 'asteroid', speed: 0.003});
+celestialObjects.push({ mesh: asteroid1, type: 'asteroid', speed: 0.003 });
 
 // Asteroide 2: Octaedro
 const asteroid2 = new THREE.Group();
@@ -511,7 +531,7 @@ const asteroidMaterial2 = new THREE.MeshPhongMaterial({
 const asteroidMesh2 = new THREE.Mesh(asteroidGeometry2, asteroidMaterial2);
 asteroid2.add(asteroidMesh2);
 scene.add(asteroid2);
-celestialObjects.push({mesh: asteroid2, type: 'asteroid', speed: 0.0025});
+celestialObjects.push({ mesh: asteroid2, type: 'asteroid', speed: 0.0025 });
 
 // Planeta hueco (anillo de toro)
 const torusPlanet = new THREE.Group();
@@ -528,7 +548,7 @@ const torusMaterial = new THREE.MeshPhongMaterial({
 const torusMesh = new THREE.Mesh(torusGeometry, torusMaterial);
 torusPlanet.add(torusMesh);
 scene.add(torusPlanet);
-celestialObjects.push({mesh: torusPlanet, type: 'torus', speed: 0.001});
+celestialObjects.push({ mesh: torusPlanet, type: 'torus', speed: 0.001 });
 
 // Cristal flotante
 const crystal = new THREE.Group();
@@ -545,22 +565,21 @@ const crystalMaterial = new THREE.MeshPhongMaterial({
 const crystalMesh = new THREE.Mesh(crystalGeometry, crystalMaterial);
 crystal.add(crystalMesh);
 scene.add(crystal);
-celestialObjects.push({mesh: crystal, type: 'crystal', speed: 0.002});
+celestialObjects.push({ mesh: crystal, type: 'crystal', speed: 0.002 });
 
-// 🌟 ========== 40 ELEMENTOS CÓSMICOS DINÁMICOS ADICIONALES ========== 🌟
+// 🌟 40 ELEMENTOS CÓSMICOS DINÁMICOS ADICIONALES 🌟
 
 // 🌠 COMETAS (5 elementos)
 for (let i = 0; i < 5; i++) {
   const comet = new THREE.Group();
   const positions = [
-    [400, 500, -600], [-700, -400, 900], [1100, 300, 700], 
+    [400, 500, -600], [-700, -400, 900], [1100, 300, 700],
     [-500, 800, -1000], [800, -600, -500]
   ];
   const colors = [0xffaa44, 0xff6688, 0x66ddff, 0xffcc66, 0xaa88ff];
-  
+
   comet.position.set(...positions[i]);
-  
-  // Núcleo brillante
+
   const cometCore = new THREE.Mesh(
     new THREE.SphereGeometry(15 + i * 2, 16, 16),
     new THREE.MeshPhongMaterial({
@@ -571,8 +590,7 @@ for (let i = 0; i < 5; i++) {
     })
   );
   comet.add(cometCore);
-  
-  // Cola del cometa
+
   const tailGeometry = new THREE.BufferGeometry();
   const tailPositions = new Float32Array(150 * 3);
   for (let j = 0; j < 150; j++) {
@@ -589,13 +607,12 @@ for (let i = 0; i < 5; i++) {
     blending: THREE.AdditiveBlending
   }));
   comet.add(tail);
-  
-  // Luz
+
   const cometLight = new THREE.PointLight(colors[i], 0.8, 300);
   comet.add(cometLight);
-  
+
   scene.add(comet);
-  celestialObjects.push({mesh: comet, type: 'comet', speed: 0.004 - i * 0.0002, index: i});
+  celestialObjects.push({ mesh: comet, type: 'comet', speed: 0.004 - i * 0.0002, index: i });
 }
 
 // ⭐ ESTRELLAS PULSANTES (8 elementos)
@@ -606,10 +623,9 @@ for (let i = 0; i < 8; i++) {
     [600, 900, -900], [-1100, 300, -400], [900, -500, 1000], [-200, 600, -1200]
   ];
   const colors = [0xffff00, 0xff00ff, 0x00ffff, 0xff6600, 0x66ff00, 0xff0066, 0x0066ff, 0xffaa00];
-  
+
   pulsar.position.set(...positions[i]);
-  
-  // Estrella central
+
   const pulsarCore = new THREE.Mesh(
     new THREE.SphereGeometry(18 + i, 20, 20),
     new THREE.MeshPhongMaterial({
@@ -620,8 +636,7 @@ for (let i = 0; i < 8; i++) {
     })
   );
   pulsar.add(pulsarCore);
-  
-  // Anillos de radiación
+
   for (let j = 0; j < 3; j++) {
     const radiationRing = new THREE.Mesh(
       new THREE.RingGeometry(30 + j * 8, 35 + j * 8, 32),
@@ -635,13 +650,12 @@ for (let i = 0; i < 8; i++) {
     radiationRing.rotation.x = Math.PI / 2;
     pulsar.add(radiationRing);
   }
-  
-  // Luz pulsante
+
   const pulsarLight = new THREE.PointLight(colors[i], 1.5, 400);
   pulsar.add(pulsarLight);
-  
+
   scene.add(pulsar);
-  celestialObjects.push({mesh: pulsar, type: 'pulsar', speed: 0.002 + i * 0.0001, index: i});
+  celestialObjects.push({ mesh: pulsar, type: 'pulsar', speed: 0.002 + i * 0.0001, index: i });
 }
 
 // 💫 ANILLOS ENERGÉTICOS (6 elementos)
@@ -653,10 +667,9 @@ for (let i = 0; i < 6; i++) {
   ];
   const colors = [0xff44aa, 0x44aaff, 0xaaff44, 0xff88ff, 0x88ffaa, 0xffaa88];
   const sizes = [60, 70, 55, 65, 58, 62];
-  
+
   energyRing.position.set(...positions[i]);
-  
-  // Anillo principal
+
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(sizes[i], sizes[i] * 0.15, 16, 100),
     new THREE.MeshPhongMaterial({
@@ -669,8 +682,7 @@ for (let i = 0; i < 6; i++) {
     })
   );
   energyRing.add(ring);
-  
-  // Partículas orbitando
+
   const particleGeom = new THREE.BufferGeometry();
   const particlePos = new Float32Array(100 * 3);
   for (let j = 0; j < 100; j++) {
@@ -688,9 +700,9 @@ for (let i = 0; i < 6; i++) {
     blending: THREE.AdditiveBlending
   }));
   energyRing.add(particles);
-  
+
   scene.add(energyRing);
-  celestialObjects.push({mesh: energyRing, type: 'energyRing', speed: 0.0015 - i * 0.0001, index: i});
+  celestialObjects.push({ mesh: energyRing, type: 'energyRing', speed: 0.0015 - i * 0.0001, index: i });
 }
 
 // 💎 ESFERAS DE CRISTAL (7 elementos)
@@ -702,10 +714,9 @@ for (let i = 0; i < 7; i++) {
   ];
   const colors = [0xaaffff, 0xffaaff, 0xffffaa, 0xaaffaa, 0xffddaa, 0xddaaff, 0xaaddff];
   const sizes = [25, 28, 22, 26, 24, 27, 23];
-  
+
   crystalSphere.position.set(...positions[i]);
-  
-  // Esfera de cristal
+
   const sphere = new THREE.Mesh(
     new THREE.IcosahedronGeometry(sizes[i], 1),
     new THREE.MeshPhongMaterial({
@@ -718,8 +729,7 @@ for (let i = 0; i < 7; i++) {
     })
   );
   crystalSphere.add(sphere);
-  
-  // Núcleo interno brillante
+
   const innerCore = new THREE.Mesh(
     new THREE.SphereGeometry(sizes[i] * 0.4, 16, 16),
     new THREE.MeshBasicMaterial({
@@ -729,9 +739,9 @@ for (let i = 0; i < 7; i++) {
     })
   );
   crystalSphere.add(innerCore);
-  
+
   scene.add(crystalSphere);
-  celestialObjects.push({mesh: crystalSphere, type: 'crystalSphere', speed: 0.001 + i * 0.0001, index: i});
+  celestialObjects.push({ mesh: crystalSphere, type: 'crystalSphere', speed: 0.001 + i * 0.0001, index: i });
 }
 
 // 🌀 PORTALES DIMENSIONALES (4 elementos)
@@ -742,10 +752,9 @@ for (let i = 0; i < 4; i++) {
   ];
   const colors = [0xff00aa, 0x00aaff, 0xaaff00, 0xff66dd];
   const sizes = [80, 75, 85, 78];
-  
+
   portal.position.set(...positions[i]);
-  
-  // Anillo exterior
+
   const portalRing1 = new THREE.Mesh(
     new THREE.TorusGeometry(sizes[i], sizes[i] * 0.1, 16, 100),
     new THREE.MeshPhongMaterial({
@@ -756,8 +765,7 @@ for (let i = 0; i < 4; i++) {
     })
   );
   portal.add(portalRing1);
-  
-  // Anillo interior
+
   const portalRing2 = new THREE.Mesh(
     new THREE.TorusGeometry(sizes[i] * 0.7, sizes[i] * 0.08, 16, 100),
     new THREE.MeshPhongMaterial({
@@ -768,8 +776,7 @@ for (let i = 0; i < 4; i++) {
     })
   );
   portal.add(portalRing2);
-  
-  // Centro del portal
+
   const vortex = new THREE.Mesh(
     new THREE.CircleGeometry(sizes[i] * 0.6, 64),
     new THREE.MeshBasicMaterial({
@@ -780,13 +787,12 @@ for (let i = 0; i < 4; i++) {
     })
   );
   portal.add(vortex);
-  
-  // Luz del portal
+
   const portalLight = new THREE.PointLight(colors[i], 2, 500);
   portal.add(portalLight);
-  
+
   scene.add(portal);
-  celestialObjects.push({mesh: portal, type: 'portal', speed: 0.0008 + i * 0.0001, index: i});
+  celestialObjects.push({ mesh: portal, type: 'portal', speed: 0.0008 + i * 0.0001, index: i });
 }
 
 // ☁️ NUBES DE POLVO ESTELAR (5 elementos)
@@ -798,10 +804,9 @@ for (let i = 0; i < 5; i++) {
   ];
   const colors = [0xcc88ff, 0x88ffcc, 0xffcc88, 0xcc88aa, 0x88ccff];
   const sizes = [100, 110, 95, 105, 98];
-  
+
   dustCloud.position.set(...positions[i]);
-  
-  // Nube de partículas
+
   const dustGeom = new THREE.BufferGeometry();
   const dustPos = new Float32Array(600 * 3);
   for (let j = 0; j < 600; j++) {
@@ -821,9 +826,9 @@ for (let i = 0; i < 5; i++) {
     blending: THREE.AdditiveBlending
   }));
   dustCloud.add(dust);
-  
+
   scene.add(dustCloud);
-  celestialObjects.push({mesh: dustCloud, type: 'dustCloud', speed: 0.0003 + i * 0.0001, index: i});
+  celestialObjects.push({ mesh: dustCloud, type: 'dustCloud', speed: 0.0003 + i * 0.0001, index: i });
 }
 
 // 🪐 MINI PLANETAS DECORATIVOS (5 elementos)
@@ -835,10 +840,9 @@ for (let i = 0; i < 5; i++) {
   ];
   const colors = [0xff9944, 0x44ff99, 0x9944ff, 0xff4499, 0x44ccff];
   const sizes = [30, 35, 28, 32, 33];
-  
+
   miniPlanet.position.set(...positions[i]);
-  
-  // Planeta pequeño
+
   const planet = new THREE.Mesh(
     new THREE.SphereGeometry(sizes[i], 24, 24),
     new THREE.MeshPhongMaterial({
@@ -849,8 +853,7 @@ for (let i = 0; i < 5; i++) {
     })
   );
   miniPlanet.add(planet);
-  
-  // Anillo opcional (cada 2 planetas)
+
   if (i % 2 === 0) {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(sizes[i] * 1.5, sizes[i] * 1.8, 48),
@@ -864,9 +867,9 @@ for (let i = 0; i < 5; i++) {
     ring.rotation.x = Math.PI / 2;
     miniPlanet.add(ring);
   }
-  
+
   scene.add(miniPlanet);
-  celestialObjects.push({mesh: miniPlanet, type: 'miniPlanet', speed: 0.0016 - i * 0.0001, index: i});
+  celestialObjects.push({ mesh: miniPlanet, type: 'miniPlanet', speed: 0.0016 - i * 0.0001, index: i });
 }
 
 // 🎮 CONTROLES DE MOVIMIENTO LIBRE
@@ -894,15 +897,14 @@ canvas.addEventListener("mousemove", e => {
   lastY = e.clientY;
 });
 
-// 📱 Controles táctiles
 canvas.addEventListener("touchstart", e => {
   dragging = true;
   const touch = e.touches[0];
   lastX = touch.clientX;
   lastY = touch.clientY;
-}, {passive: true});
+}, { passive: true });
 
-canvas.addEventListener("touchend", () => dragging = false, {passive: true});
+canvas.addEventListener("touchend", () => dragging = false, { passive: true });
 
 canvas.addEventListener("touchmove", e => {
   if (!dragging) return;
@@ -914,9 +916,8 @@ canvas.addEventListener("touchmove", e => {
   cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
   lastX = touch.clientX;
   lastY = touch.clientY;
-}, {passive: true});
+}, { passive: true });
 
-// 🔍 Zoom con scroll
 canvas.addEventListener("wheel", e => {
   const forward = new THREE.Vector3(
     Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
@@ -936,7 +937,7 @@ function animateHearts() {
   galaxies.forEach(galaxy => {
     const heartScale = 8 + Math.sin(heartPulse) * 0.5;
     galaxy.heart.scale.set(heartScale, heartScale, heartScale);
-    
+
     const textScaleX = 120 + Math.sin(heartPulse) * 8;
     const textScaleY = 50 + Math.sin(heartPulse) * 4;
     galaxy.text.scale.set(textScaleX, textScaleY, 1);
@@ -949,10 +950,10 @@ animateHearts();
 // === Loop de animación principal ===
 let t = 0;
 function tick() {
+  console.log("Renderer started"); // Depurar
   requestAnimationFrame(tick);
   t += 0.01;
 
-  // 🎮 Movimiento de cámara con teclado (WASD + Flechas)
   const moveSpeed = 5;
   const forward = new THREE.Vector3(
     Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
@@ -986,9 +987,8 @@ function tick() {
   if (keys[' ']) cameraPos.y += moveSpeed;
   if (keys['shift']) cameraPos.y -= moveSpeed;
 
-  // Actualizar posición de cámara
   camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-  
+
   const lookAt = new THREE.Vector3(
     cameraPos.x + forward.x * 100,
     cameraPos.y + forward.y * 100,
@@ -996,19 +996,15 @@ function tick() {
   );
   camera.lookAt(lookAt);
 
-  // Animar cada galaxia
   galaxies.forEach(galaxy => {
-    // Anillos giratorios con movimiento ondulante
     galaxy.ring1.rotation.z += 0.003;
     galaxy.ring2.rotation.z -= 0.0025;
     galaxy.ring3.rotation.z += 0.002;
-    
-    // Movimiento ondulante de los anillos
+
     galaxy.ring1.rotation.x = Math.PI / 2 + Math.sin(t * 0.5) * 0.1;
     galaxy.ring2.rotation.x = Math.PI / 2 + Math.cos(t * 0.6) * 0.12;
     galaxy.ring3.rotation.x = Math.PI / 2 + Math.sin(t * 0.4) * 0.08;
 
-    // Palabras girando alrededor de la galaxia
     galaxy.textGroup.children.forEach(sprite => {
       sprite.material.opacity = 0.75 + 0.25 * Math.sin(2 * t);
       sprite.userData.theta += sprite.userData.speed;
@@ -1017,7 +1013,6 @@ function tick() {
       sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
     });
 
-    // Fotos girando alrededor de la galaxia
     galaxy.imageGroup.children.forEach(sprite => {
       sprite.material.opacity = 0.85 + 0.15 * Math.sin(2 * t);
       sprite.userData.theta += sprite.userData.speed;
@@ -1026,7 +1021,6 @@ function tick() {
       sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
     });
 
-    // Hacer que corazón y texto miren a la cámara
     galaxy.group.children.forEach(child => {
       if (child instanceof THREE.Mesh || child instanceof THREE.Sprite) {
         if (child.geometry && child.geometry.type !== "RingGeometry") {
@@ -1036,11 +1030,10 @@ function tick() {
     });
   });
 
-  // 🪐 Animar objetos celestiales decorativos
   celestialObjects.forEach((obj, index) => {
-    const {mesh, type, speed} = obj;
-    
-    switch(type) {
+    const { mesh, type, speed } = obj;
+
+    switch (type) {
       case 'saturn':
         mesh.rotation.y += speed;
         mesh.children[1].rotation.z += speed * 2;
@@ -1086,8 +1079,6 @@ function tick() {
         mesh.children[0].material.emissiveIntensity = 0.3 + Math.sin(t * 3) * 0.2;
         mesh.position.y += Math.sin(t * 0.5 + index) * 0.7;
         break;
-      
-      // 🌟 Animaciones de los 40 nuevos elementos cósmicos
       case 'comet':
         mesh.rotation.z += speed;
         mesh.position.x += Math.cos(t * 0.5 + obj.index * 0.1) * 2;
@@ -1099,17 +1090,45 @@ function tick() {
           mesh.children[2].intensity = 0.6 + Math.sin(t * 3 + obj.index) * 0.3;
         }
         break;
-        
       case 'pulsar':
         mesh.rotation.y += speed * 2;
         const pulseScale = 1 + Math.sin(t * 4 + obj.index) * 0.2;
+        mesh.children[0].scale.set(pulseScale, pulseScale, pulseScale);
+        mesh.children[0].material.emissiveIntensity = 0.8 + Math.sin(t * 5 + obj.index) * 0.3;
+        for (let i = 1; i < 4; i++) {
+          if (mesh.children[i]) {
+            mesh.children[i].rotation.z += speed * (i + 1);
+            mesh.children[i].material.opacity = 0.2 + Math.sin(t * 3 + obj.index + i) * 0.1;
+          }
+        }
+        if (mesh.children[4]) {
+          mesh.children[4].intensity = 1 + Math.sin(t * 6 + obj.index) * 0.8;
+        }
+        break;
+      case 'energyRing':
+        mesh.rotation.x += speed;
+        mesh.rotation.y += speed * 1.5;
+        mesh.rotation.z += speed * 0.8;
+        const ringScale = 1 + Math.sin(t * 2 + obj.index) * 0.15;
+        mesh.children[0].scale.set(ringScale, ringScale, ringScale);
+        mesh.children[0].material.emissiveIntensity = 0.5 + Math.sin(t * 3 + obj.index) * 0.3;
+        if (mesh.children[1]) {
+          mesh.children[1].rotation.y += speed * 3;
+          mesh.children[1].material.opacity = 0.6 + Math.sin(t * 2.5 + obj.index) * 0.3;
+        }
+        break;
+      case 'crystalSphere':
+        mesh.rotation.x += speed * 1.3;
+        mesh.rotation.y += speed * 1.8;
+        mesh.rotation.z += speed * 0.9;
+        mesh.position.y += Math.sin(t * 0.6 + obj.index * 0.2) * 1.2;
+        const crystalPulse = 1 + Math.sin(t * 3 + obj.index) * 0.1;
         mesh.children[0].scale.set(crystalPulse, crystalPulse, crystalPulse);
         mesh.children[0].material.opacity = 0.6 + Math.sin(t * 2 + obj.index) * 0.2;
         if (mesh.children[1]) {
           mesh.children[1].material.opacity = 0.8 + Math.sin(t * 4 + obj.index) * 0.2;
         }
         break;
-        
       case 'portal':
         mesh.children[0].rotation.z += speed * 2;
         mesh.children[1].rotation.z -= speed * 3;
@@ -1123,7 +1142,6 @@ function tick() {
           mesh.children[3].intensity = 1.5 + Math.sin(t * 6 + obj.index) * 1;
         }
         break;
-        
       case 'dustCloud':
         mesh.rotation.x += speed * 0.3;
         mesh.rotation.y += speed * 0.5;
@@ -1134,7 +1152,6 @@ function tick() {
         mesh.children[0].scale.set(cloudScale, cloudScale, cloudScale);
         mesh.children[0].material.opacity = 0.4 + Math.sin(t * 1.5 + obj.index) * 0.2;
         break;
-        
       case 'miniPlanet':
         mesh.rotation.y += speed;
         mesh.rotation.x += speed * 0.4;
@@ -1158,41 +1175,4 @@ window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-});pulseScale, pulseScale, pulseScale);
-        mesh.children[0].material.emissiveIntensity = 0.8 + Math.sin(t * 5 + obj.index) * 0.3;
-        for (let i = 1; i < 4; i++) {
-          if (mesh.children[i]) {
-            mesh.children[i].rotation.z += speed * (i + 1);
-            mesh.children[i].material.opacity = 0.2 + Math.sin(t * 3 + obj.index + i) * 0.1;
-          }
-        }
-        if (mesh.children[4]) {
-          mesh.children[4].intensity = 1 + Math.sin(t * 6 + obj.index) * 0.8;
-        }
-        break;
-        
-      case 'energyRing':
-        mesh.rotation.x += speed;
-        mesh.rotation.y += speed * 1.5;
-        mesh.rotation.z += speed * 0.8;
-        const ringScale = 1 + Math.sin(t * 2 + obj.index) * 0.15;
-        mesh.children[0].scale.set(ringScale, ringScale, ringScale);
-        mesh.children[0].material.emissiveIntensity = 0.5 + Math.sin(t * 3 + obj.index) * 0.3;
-        if (mesh.children[1]) {
-          mesh.children[1].rotation.y += speed * 3;
-          mesh.children[1].material.opacity = 0.6 + Math.sin(t * 2.5 + obj.index) * 0.3;
-        }
-        break;
-        
-      case 'crystalSphere':
-      mesh.rotation.x += speed * 1.3;
-      mesh.rotation.y += speed * 1.8;
-      mesh.rotation.z += speed * 0.9;
-      mesh.position.y += Math.sin(t * 0.6 + obj.index * 0.2) * 1.2;
-      const crystalPulse = 1 + Math.sin(t * 3 + obj.index) * 0.1;
-      mesh.children[0].scale.set(crystalPulse, crystalPulse, crystalPulse);
-      mesh.children[0].material.opacity = 0.6 + Math.sin(t * 2 + obj.index) * 0.2;
-      if (mesh.children[1]) {
-        mesh.children[1].material.opacity = 0.8 + Math.sin(t * 4 + obj.index) * 0.2;
-      }
-      break;
+});
