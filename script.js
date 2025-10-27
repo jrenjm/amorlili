@@ -498,7 +498,7 @@ let isZooming = false;
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // Configuración unificada para todos los dispositivos
-const ZOOM_SENSITIVITY = isMobile ? 0.8 : 0.5; // Más sensible en móvil
+const ZOOM_SENSITIVITY = isMobile ? 2 : 0.5; // Más sensible en móvil
 const ROTATION_SENSITIVITY = isMobile ? 0.004 : 0.003; // Similar sensibilidad
 const MOVE_SPEED = isMobile ? 6 : 5; // Velocidad similar
 
