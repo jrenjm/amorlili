@@ -547,6 +547,328 @@ crystal.add(crystalMesh);
 scene.add(crystal);
 celestialObjects.push({mesh: crystal, type: 'crystal', speed: 0.002});
 
+// 🌟 ========== 40 ELEMENTOS CÓSMICOS DINÁMICOS ADICIONALES ========== 🌟
+
+// 🌠 COMETAS (5 elementos)
+for (let i = 0; i < 5; i++) {
+  const comet = new THREE.Group();
+  const positions = [
+    [400, 500, -600], [-700, -400, 900], [1100, 300, 700], 
+    [-500, 800, -1000], [800, -600, -500]
+  ];
+  const colors = [0xffaa44, 0xff6688, 0x66ddff, 0xffcc66, 0xaa88ff];
+  
+  comet.position.set(...positions[i]);
+  
+  // Núcleo brillante
+  const cometCore = new THREE.Mesh(
+    new THREE.SphereGeometry(15 + i * 2, 16, 16),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 0.8,
+      shininess: 150
+    })
+  );
+  comet.add(cometCore);
+  
+  // Cola del cometa
+  const tailGeometry = new THREE.BufferGeometry();
+  const tailPositions = new Float32Array(150 * 3);
+  for (let j = 0; j < 150; j++) {
+    tailPositions[j * 3] = -j * 0.8 + (Math.random() - 0.5) * 2;
+    tailPositions[j * 3 + 1] = (Math.random() - 0.5) * 3;
+    tailPositions[j * 3 + 2] = (Math.random() - 0.5) * 3;
+  }
+  tailGeometry.setAttribute("position", new THREE.BufferAttribute(tailPositions, 3));
+  const tail = new THREE.Points(tailGeometry, new THREE.PointsMaterial({
+    size: 3,
+    color: colors[i],
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending
+  }));
+  comet.add(tail);
+  
+  // Luz
+  const cometLight = new THREE.PointLight(colors[i], 0.8, 300);
+  comet.add(cometLight);
+  
+  scene.add(comet);
+  celestialObjects.push({mesh: comet, type: 'comet', speed: 0.004 - i * 0.0002, index: i});
+}
+
+// ⭐ ESTRELLAS PULSANTES (8 elementos)
+for (let i = 0; i < 8; i++) {
+  const pulsar = new THREE.Group();
+  const positions = [
+    [300, 700, 800], [-900, 500, 600], [1300, -200, -700], [-400, -700, 1100],
+    [600, 900, -900], [-1100, 300, -400], [900, -500, 1000], [-200, 600, -1200]
+  ];
+  const colors = [0xffff00, 0xff00ff, 0x00ffff, 0xff6600, 0x66ff00, 0xff0066, 0x0066ff, 0xffaa00];
+  
+  pulsar.position.set(...positions[i]);
+  
+  // Estrella central
+  const pulsarCore = new THREE.Mesh(
+    new THREE.SphereGeometry(18 + i, 20, 20),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 1,
+      shininess: 200
+    })
+  );
+  pulsar.add(pulsarCore);
+  
+  // Anillos de radiación
+  for (let j = 0; j < 3; j++) {
+    const radiationRing = new THREE.Mesh(
+      new THREE.RingGeometry(30 + j * 8, 35 + j * 8, 32),
+      new THREE.MeshBasicMaterial({
+        color: colors[i],
+        transparent: true,
+        opacity: 0.3 - j * 0.08,
+        side: THREE.DoubleSide
+      })
+    );
+    radiationRing.rotation.x = Math.PI / 2;
+    pulsar.add(radiationRing);
+  }
+  
+  // Luz pulsante
+  const pulsarLight = new THREE.PointLight(colors[i], 1.5, 400);
+  pulsar.add(pulsarLight);
+  
+  scene.add(pulsar);
+  celestialObjects.push({mesh: pulsar, type: 'pulsar', speed: 0.002 + i * 0.0001, index: i});
+}
+
+// 💫 ANILLOS ENERGÉTICOS (6 elementos)
+for (let i = 0; i < 6; i++) {
+  const energyRing = new THREE.Group();
+  const positions = [
+    [500, 400, 500], [-800, -300, -800], [1000, 600, -600],
+    [-600, 700, 1000], [700, -400, 900], [-1000, 200, -500]
+  ];
+  const colors = [0xff44aa, 0x44aaff, 0xaaff44, 0xff88ff, 0x88ffaa, 0xffaa88];
+  const sizes = [60, 70, 55, 65, 58, 62];
+  
+  energyRing.position.set(...positions[i]);
+  
+  // Anillo principal
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(sizes[i], sizes[i] * 0.15, 16, 100),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 0.6,
+      shininess: 150,
+      transparent: true,
+      opacity: 0.8
+    })
+  );
+  energyRing.add(ring);
+  
+  // Partículas orbitando
+  const particleGeom = new THREE.BufferGeometry();
+  const particlePos = new Float32Array(100 * 3);
+  for (let j = 0; j < 100; j++) {
+    const angle = (j / 100) * Math.PI * 2;
+    particlePos[j * 3] = Math.cos(angle) * sizes[i];
+    particlePos[j * 3 + 1] = (Math.random() - 0.5) * 10;
+    particlePos[j * 3 + 2] = Math.sin(angle) * sizes[i];
+  }
+  particleGeom.setAttribute("position", new THREE.BufferAttribute(particlePos, 3));
+  const particles = new THREE.Points(particleGeom, new THREE.PointsMaterial({
+    size: 4,
+    color: colors[i],
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending
+  }));
+  energyRing.add(particles);
+  
+  scene.add(energyRing);
+  celestialObjects.push({mesh: energyRing, type: 'energyRing', speed: 0.0015 - i * 0.0001, index: i});
+}
+
+// 💎 ESFERAS DE CRISTAL (7 elementos)
+for (let i = 0; i < 7; i++) {
+  const crystalSphere = new THREE.Group();
+  const positions = [
+    [350, 650, -750], [-650, -500, 850], [950, 450, 650], [-450, 750, -950],
+    [750, -550, -650], [-950, 350, 750], [550, 850, 950]
+  ];
+  const colors = [0xaaffff, 0xffaaff, 0xffffaa, 0xaaffaa, 0xffddaa, 0xddaaff, 0xaaddff];
+  const sizes = [25, 28, 22, 26, 24, 27, 23];
+  
+  crystalSphere.position.set(...positions[i]);
+  
+  // Esfera de cristal
+  const sphere = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(sizes[i], 1),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 0.4,
+      shininess: 250,
+      transparent: true,
+      opacity: 0.7
+    })
+  );
+  crystalSphere.add(sphere);
+  
+  // Núcleo interno brillante
+  const innerCore = new THREE.Mesh(
+    new THREE.SphereGeometry(sizes[i] * 0.4, 16, 16),
+    new THREE.MeshBasicMaterial({
+      color: colors[i],
+      transparent: true,
+      opacity: 0.9
+    })
+  );
+  crystalSphere.add(innerCore);
+  
+  scene.add(crystalSphere);
+  celestialObjects.push({mesh: crystalSphere, type: 'crystalSphere', speed: 0.001 + i * 0.0001, index: i});
+}
+
+// 🌀 PORTALES DIMENSIONALES (4 elementos)
+for (let i = 0; i < 4; i++) {
+  const portal = new THREE.Group();
+  const positions = [
+    [1200, 700, 400], [-1100, -600, -700], [400, -800, 1100], [-700, 900, -1000]
+  ];
+  const colors = [0xff00aa, 0x00aaff, 0xaaff00, 0xff66dd];
+  const sizes = [80, 75, 85, 78];
+  
+  portal.position.set(...positions[i]);
+  
+  // Anillo exterior
+  const portalRing1 = new THREE.Mesh(
+    new THREE.TorusGeometry(sizes[i], sizes[i] * 0.1, 16, 100),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 0.8,
+      shininess: 200
+    })
+  );
+  portal.add(portalRing1);
+  
+  // Anillo interior
+  const portalRing2 = new THREE.Mesh(
+    new THREE.TorusGeometry(sizes[i] * 0.7, sizes[i] * 0.08, 16, 100),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 1,
+      shininess: 250
+    })
+  );
+  portal.add(portalRing2);
+  
+  // Centro del portal
+  const vortex = new THREE.Mesh(
+    new THREE.CircleGeometry(sizes[i] * 0.6, 64),
+    new THREE.MeshBasicMaterial({
+      color: colors[i],
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide
+    })
+  );
+  portal.add(vortex);
+  
+  // Luz del portal
+  const portalLight = new THREE.PointLight(colors[i], 2, 500);
+  portal.add(portalLight);
+  
+  scene.add(portal);
+  celestialObjects.push({mesh: portal, type: 'portal', speed: 0.0008 + i * 0.0001, index: i});
+}
+
+// ☁️ NUBES DE POLVO ESTELAR (5 elementos)
+for (let i = 0; i < 5; i++) {
+  const dustCloud = new THREE.Group();
+  const positions = [
+    [250, 550, -850], [-850, -350, 750], [1050, 250, 550],
+    [-550, 850, -1050], [850, -650, -450]
+  ];
+  const colors = [0xcc88ff, 0x88ffcc, 0xffcc88, 0xcc88aa, 0x88ccff];
+  const sizes = [100, 110, 95, 105, 98];
+  
+  dustCloud.position.set(...positions[i]);
+  
+  // Nube de partículas
+  const dustGeom = new THREE.BufferGeometry();
+  const dustPos = new Float32Array(600 * 3);
+  for (let j = 0; j < 600; j++) {
+    const radius = sizes[i] * Math.random();
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    dustPos[j * 3] = radius * Math.sin(phi) * Math.cos(theta);
+    dustPos[j * 3 + 1] = radius * Math.cos(phi);
+    dustPos[j * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+  }
+  dustGeom.setAttribute("position", new THREE.BufferAttribute(dustPos, 3));
+  const dust = new THREE.Points(dustGeom, new THREE.PointsMaterial({
+    size: 3.5,
+    color: colors[i],
+    transparent: true,
+    opacity: 0.5,
+    blending: THREE.AdditiveBlending
+  }));
+  dustCloud.add(dust);
+  
+  scene.add(dustCloud);
+  celestialObjects.push({mesh: dustCloud, type: 'dustCloud', speed: 0.0003 + i * 0.0001, index: i});
+}
+
+// 🪐 MINI PLANETAS DECORATIVOS (5 elementos)
+for (let i = 0; i < 5; i++) {
+  const miniPlanet = new THREE.Group();
+  const positions = [
+    [450, 350, -550], [-750, -450, 650], [1150, 550, 450],
+    [-350, 650, -1150], [650, -750, 750]
+  ];
+  const colors = [0xff9944, 0x44ff99, 0x9944ff, 0xff4499, 0x44ccff];
+  const sizes = [30, 35, 28, 32, 33];
+  
+  miniPlanet.position.set(...positions[i]);
+  
+  // Planeta pequeño
+  const planet = new THREE.Mesh(
+    new THREE.SphereGeometry(sizes[i], 24, 24),
+    new THREE.MeshPhongMaterial({
+      color: colors[i],
+      emissive: colors[i],
+      emissiveIntensity: 0.2,
+      shininess: 80
+    })
+  );
+  miniPlanet.add(planet);
+  
+  // Anillo opcional (cada 2 planetas)
+  if (i % 2 === 0) {
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(sizes[i] * 1.5, sizes[i] * 1.8, 48),
+      new THREE.MeshBasicMaterial({
+        color: colors[i],
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      })
+    );
+    ring.rotation.x = Math.PI / 2;
+    miniPlanet.add(ring);
+  }
+  
+  scene.add(miniPlanet);
+  celestialObjects.push({mesh: miniPlanet, type: 'miniPlanet', speed: 0.0016 - i * 0.0001, index: i});
+}
+
 // 🎮 CONTROLES DE MOVIMIENTO LIBRE
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
@@ -721,7 +1043,7 @@ function tick() {
     switch(type) {
       case 'saturn':
         mesh.rotation.y += speed;
-        mesh.children[1].rotation.z += speed * 2; // Anillo gira más rápido
+        mesh.children[1].rotation.z += speed * 2;
         mesh.position.y += Math.sin(t * 0.3 + index) * 0.5;
         break;
       case 'jupiter':
@@ -764,6 +1086,66 @@ function tick() {
         mesh.children[0].material.emissiveIntensity = 0.3 + Math.sin(t * 3) * 0.2;
         mesh.position.y += Math.sin(t * 0.5 + index) * 0.7;
         break;
+      
+      // 🌟 Animaciones de los 40 nuevos elementos cósmicos
+      case 'comet':
+        mesh.rotation.z += speed;
+        mesh.position.x += Math.cos(t * 0.5 + obj.index * 0.1) * 2;
+        mesh.position.y += Math.sin(t * 0.3 + obj.index * 0.1) * 1.5;
+        if (mesh.children[1]) {
+          mesh.children[1].material.opacity = 0.4 + Math.sin(t * 2 + obj.index) * 0.2;
+        }
+        if (mesh.children[2]) {
+          mesh.children[2].intensity = 0.6 + Math.sin(t * 3 + obj.index) * 0.3;
+        }
+        break;
+        
+      case 'pulsar':
+        mesh.rotation.y += speed * 2;
+        const pulseScale = 1 + Math.sin(t * 4 + obj.index) * 0.2;
+        mesh.children[0].scale.set(crystalPulse, crystalPulse, crystalPulse);
+        mesh.children[0].material.opacity = 0.6 + Math.sin(t * 2 + obj.index) * 0.2;
+        if (mesh.children[1]) {
+          mesh.children[1].material.opacity = 0.8 + Math.sin(t * 4 + obj.index) * 0.2;
+        }
+        break;
+        
+      case 'portal':
+        mesh.children[0].rotation.z += speed * 2;
+        mesh.children[1].rotation.z -= speed * 3;
+        mesh.children[0].material.emissiveIntensity = 0.7 + Math.sin(t * 4 + obj.index) * 0.3;
+        mesh.children[1].material.emissiveIntensity = 0.9 + Math.sin(t * 5 + obj.index) * 0.4;
+        if (mesh.children[2]) {
+          mesh.children[2].rotation.z += speed * 4;
+          mesh.children[2].material.opacity = 0.3 + Math.sin(t * 3 + obj.index) * 0.2;
+        }
+        if (mesh.children[3]) {
+          mesh.children[3].intensity = 1.5 + Math.sin(t * 6 + obj.index) * 1;
+        }
+        break;
+        
+      case 'dustCloud':
+        mesh.rotation.x += speed * 0.3;
+        mesh.rotation.y += speed * 0.5;
+        mesh.rotation.z += speed * 0.2;
+        mesh.position.x += Math.cos(t * 0.2 + obj.index * 0.15) * 0.5;
+        mesh.position.y += Math.sin(t * 0.25 + obj.index * 0.15) * 0.4;
+        const cloudScale = 1 + Math.sin(t * 0.8 + obj.index) * 0.2;
+        mesh.children[0].scale.set(cloudScale, cloudScale, cloudScale);
+        mesh.children[0].material.opacity = 0.4 + Math.sin(t * 1.5 + obj.index) * 0.2;
+        break;
+        
+      case 'miniPlanet':
+        mesh.rotation.y += speed;
+        mesh.rotation.x += speed * 0.4;
+        mesh.position.x += Math.cos(t * 0.4 + obj.index * 0.2) * 0.8;
+        mesh.position.z += Math.sin(t * 0.35 + obj.index * 0.2) * 0.7;
+        mesh.children[0].material.emissiveIntensity = 0.15 + Math.sin(t * 2 + obj.index) * 0.1;
+        if (mesh.children[1]) {
+          mesh.children[1].rotation.z += speed * 1.5;
+          mesh.children[1].material.opacity = 0.4 + Math.sin(t * 3 + obj.index) * 0.15;
+        }
+        break;
     }
   });
 
@@ -776,4 +1158,36 @@ window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-});
+});pulseScale, pulseScale, pulseScale);
+        mesh.children[0].material.emissiveIntensity = 0.8 + Math.sin(t * 5 + obj.index) * 0.3;
+        for (let i = 1; i < 4; i++) {
+          if (mesh.children[i]) {
+            mesh.children[i].rotation.z += speed * (i + 1);
+            mesh.children[i].material.opacity = 0.2 + Math.sin(t * 3 + obj.index + i) * 0.1;
+          }
+        }
+        if (mesh.children[4]) {
+          mesh.children[4].intensity = 1 + Math.sin(t * 6 + obj.index) * 0.8;
+        }
+        break;
+        
+      case 'energyRing':
+        mesh.rotation.x += speed;
+        mesh.rotation.y += speed * 1.5;
+        mesh.rotation.z += speed * 0.8;
+        const ringScale = 1 + Math.sin(t * 2 + obj.index) * 0.15;
+        mesh.children[0].scale.set(ringScale, ringScale, ringScale);
+        mesh.children[0].material.emissiveIntensity = 0.5 + Math.sin(t * 3 + obj.index) * 0.3;
+        if (mesh.children[1]) {
+          mesh.children[1].rotation.y += speed * 3;
+          mesh.children[1].material.opacity = 0.6 + Math.sin(t * 2.5 + obj.index) * 0.3;
+        }
+        break;
+        
+      case 'crystalSphere':
+        mesh.rotation.x += speed * 1.3;
+        mesh.rotation.y += speed * 1.8;
+        mesh.rotation.z += speed * 0.9;
+        mesh.position.y += Math.sin(t * 0.6 + obj.index * 0.2) * 1.2;
+        const crystalPulse = 1 + Math.sin(t * 3 + obj.index) * 0.1;
+        mesh.children[0].scale.set(
