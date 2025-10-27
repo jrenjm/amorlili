@@ -345,6 +345,208 @@ for (let i = 0; i < galaxyPositions.length; i++) {
   galaxies.push(galaxy);
 }
 
+// 🪐 CREAR PLANETAS Y OBJETOS CELESTIALES DECORATIVOS
+const celestialObjects = [];
+
+// Planeta 1: Saturno rosa con anillos
+const saturn = new THREE.Group();
+saturn.position.set(1200, -800, 800);
+const saturnGeometry = new THREE.SphereGeometry(50, 32, 32);
+const saturnMaterial = new THREE.MeshPhongMaterial({
+  color: 0xff88cc,
+  emissive: 0xff44aa,
+  emissiveIntensity: 0.2,
+  shininess: 100
+});
+const saturnMesh = new THREE.Mesh(saturnGeometry, saturnMaterial);
+saturn.add(saturnMesh);
+const saturnRing = new THREE.Mesh(
+  new THREE.RingGeometry(70, 90, 64),
+  new THREE.MeshBasicMaterial({color: 0xffaaee, transparent: true, opacity: 0.6, side: THREE.DoubleSide})
+);
+saturnRing.rotation.x = Math.PI / 2.5;
+saturn.add(saturnRing);
+scene.add(saturn);
+celestialObjects.push({mesh: saturn, type: 'saturn', speed: 0.001});
+
+// Planeta 2: Júpiter azul con textura de bandas
+const jupiter = new THREE.Group();
+jupiter.position.set(-1500, 600, -900);
+const jupiterGeometry = new THREE.SphereGeometry(80, 32, 32);
+const jupiterMaterial = new THREE.MeshPhongMaterial({
+  color: 0x4488ff,
+  emissive: 0x2244aa,
+  emissiveIntensity: 0.3,
+  shininess: 80
+});
+const jupiterMesh = new THREE.Mesh(jupiterGeometry, jupiterMaterial);
+jupiter.add(jupiterMesh);
+scene.add(jupiter);
+celestialObjects.push({mesh: jupiter, type: 'jupiter', speed: 0.0008});
+
+// Planeta 3: Planeta con anillo vertical
+const uranus = new THREE.Group();
+uranus.position.set(800, 900, -1400);
+const uranusGeometry = new THREE.SphereGeometry(40, 32, 32);
+const uranusMaterial = new THREE.MeshPhongMaterial({
+  color: 0x66ffcc,
+  emissive: 0x33aa88,
+  emissiveIntensity: 0.25,
+  shininess: 120
+});
+const uranusMesh = new THREE.Mesh(uranusGeometry, uranusMaterial);
+uranus.add(uranusMesh);
+const uranusRing = new THREE.Mesh(
+  new THREE.RingGeometry(55, 65, 64),
+  new THREE.MeshBasicMaterial({color: 0x88ffdd, transparent: true, opacity: 0.5, side: THREE.DoubleSide})
+);
+uranusRing.rotation.y = Math.PI / 2;
+uranus.add(uranusRing);
+scene.add(uranus);
+celestialObjects.push({mesh: uranus, type: 'uranus', speed: 0.0012});
+
+// Planeta 4: Luna pequeña brillante
+const moon = new THREE.Group();
+moon.position.set(-800, -600, 1200);
+const moonGeometry = new THREE.SphereGeometry(30, 32, 32);
+const moonMaterial = new THREE.MeshPhongMaterial({
+  color: 0xffff88,
+  emissive: 0xffff00,
+  emissiveIntensity: 0.4,
+  shininess: 150
+});
+const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+moon.add(moonMesh);
+const moonLight = new THREE.PointLight(0xffff88, 0.8, 400);
+moon.add(moonLight);
+scene.add(moon);
+celestialObjects.push({mesh: moon, type: 'moon', speed: 0.002});
+
+// Planeta 5: Planeta rocoso rojo
+const mars = new THREE.Group();
+mars.position.set(1600, 200, 1100);
+const marsGeometry = new THREE.SphereGeometry(35, 32, 32);
+const marsMaterial = new THREE.MeshPhongMaterial({
+  color: 0xff6633,
+  emissive: 0xaa3311,
+  emissiveIntensity: 0.2,
+  shininess: 60
+});
+const marsMesh = new THREE.Mesh(marsGeometry, marsMaterial);
+mars.add(marsMesh);
+scene.add(mars);
+celestialObjects.push({mesh: mars, type: 'mars', speed: 0.0015});
+
+// Nebulosa 1: Nube de partículas púrpura
+const nebula1 = new THREE.Group();
+nebula1.position.set(-1000, 300, -1600);
+const nebulaGeometry1 = new THREE.BufferGeometry();
+const nebulaPositions1 = new Float32Array(1000 * 3);
+for (let i = 0; i < 1000; i++) {
+  nebulaPositions1[i * 3] = (Math.random() - 0.5) * 200;
+  nebulaPositions1[i * 3 + 1] = (Math.random() - 0.5) * 200;
+  nebulaPositions1[i * 3 + 2] = (Math.random() - 0.5) * 200;
+}
+nebulaGeometry1.setAttribute("position", new THREE.BufferAttribute(nebulaPositions1, 3));
+const nebulaMaterial1 = new THREE.PointsMaterial({
+  size: 4,
+  color: 0xaa66ff,
+  transparent: true,
+  opacity: 0.6,
+  blending: THREE.AdditiveBlending
+});
+const nebulaPoints1 = new THREE.Points(nebulaGeometry1, nebulaMaterial1);
+nebula1.add(nebulaPoints1);
+scene.add(nebula1);
+celestialObjects.push({mesh: nebula1, type: 'nebula', speed: 0.0005});
+
+// Nebulosa 2: Nube de partículas verde
+const nebula2 = new THREE.Group();
+nebula2.position.set(1400, -400, -1300);
+const nebulaGeometry2 = new THREE.BufferGeometry();
+const nebulaPositions2 = new Float32Array(800 * 3);
+for (let i = 0; i < 800; i++) {
+  nebulaPositions2[i * 3] = (Math.random() - 0.5) * 180;
+  nebulaPositions2[i * 3 + 1] = (Math.random() - 0.5) * 180;
+  nebulaPositions2[i * 3 + 2] = (Math.random() - 0.5) * 180;
+}
+nebulaGeometry2.setAttribute("position", new THREE.BufferAttribute(nebulaPositions2, 3));
+const nebulaMaterial2 = new THREE.PointsMaterial({
+  size: 3,
+  color: 0x66ffaa,
+  transparent: true,
+  opacity: 0.5,
+  blending: THREE.AdditiveBlending
+});
+const nebulaPoints2 = new THREE.Points(nebulaGeometry2, nebulaMaterial2);
+nebula2.add(nebulaPoints2);
+scene.add(nebula2);
+celestialObjects.push({mesh: nebula2, type: 'nebula', speed: 0.0006});
+
+// Asteroide 1: Forma irregular con rotación
+const asteroid1 = new THREE.Group();
+asteroid1.position.set(-600, -900, -1100);
+const asteroidGeometry1 = new THREE.DodecahedronGeometry(25, 0);
+const asteroidMaterial1 = new THREE.MeshPhongMaterial({
+  color: 0x888888,
+  emissive: 0x333333,
+  emissiveIntensity: 0.1,
+  shininess: 20
+});
+const asteroidMesh1 = new THREE.Mesh(asteroidGeometry1, asteroidMaterial1);
+asteroid1.add(asteroidMesh1);
+scene.add(asteroid1);
+celestialObjects.push({mesh: asteroid1, type: 'asteroid', speed: 0.003});
+
+// Asteroide 2: Octaedro
+const asteroid2 = new THREE.Group();
+asteroid2.position.set(500, 700, 1400);
+const asteroidGeometry2 = new THREE.OctahedronGeometry(20, 0);
+const asteroidMaterial2 = new THREE.MeshPhongMaterial({
+  color: 0x996633,
+  emissive: 0x443322,
+  emissiveIntensity: 0.15,
+  shininess: 30
+});
+const asteroidMesh2 = new THREE.Mesh(asteroidGeometry2, asteroidMaterial2);
+asteroid2.add(asteroidMesh2);
+scene.add(asteroid2);
+celestialObjects.push({mesh: asteroid2, type: 'asteroid', speed: 0.0025});
+
+// Planeta hueco (anillo de toro)
+const torusPlanet = new THREE.Group();
+torusPlanet.position.set(-1300, 800, 600);
+const torusGeometry = new THREE.TorusGeometry(50, 20, 16, 100);
+const torusMaterial = new THREE.MeshPhongMaterial({
+  color: 0xff9966,
+  emissive: 0xaa5533,
+  emissiveIntensity: 0.3,
+  shininess: 100,
+  transparent: true,
+  opacity: 0.9
+});
+const torusMesh = new THREE.Mesh(torusGeometry, torusMaterial);
+torusPlanet.add(torusMesh);
+scene.add(torusPlanet);
+celestialObjects.push({mesh: torusPlanet, type: 'torus', speed: 0.001});
+
+// Cristal flotante
+const crystal = new THREE.Group();
+crystal.position.set(900, -300, -800);
+const crystalGeometry = new THREE.TetrahedronGeometry(40, 0);
+const crystalMaterial = new THREE.MeshPhongMaterial({
+  color: 0x66ccff,
+  emissive: 0x3388cc,
+  emissiveIntensity: 0.4,
+  shininess: 200,
+  transparent: true,
+  opacity: 0.8
+});
+const crystalMesh = new THREE.Mesh(crystalGeometry, crystalMaterial);
+crystal.add(crystalMesh);
+scene.add(crystal);
+celestialObjects.push({mesh: crystal, type: 'crystal', speed: 0.002});
+
 // 🎮 CONTROLES DE MOVIMIENTO LIBRE
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
@@ -510,6 +712,59 @@ function tick() {
         }
       }
     });
+  });
+
+  // 🪐 Animar objetos celestiales decorativos
+  celestialObjects.forEach((obj, index) => {
+    const {mesh, type, speed} = obj;
+    
+    switch(type) {
+      case 'saturn':
+        mesh.rotation.y += speed;
+        mesh.children[1].rotation.z += speed * 2; // Anillo gira más rápido
+        mesh.position.y += Math.sin(t * 0.3 + index) * 0.5;
+        break;
+      case 'jupiter':
+        mesh.rotation.y += speed;
+        mesh.rotation.x += speed * 0.5;
+        mesh.position.x += Math.cos(t * 0.2 + index) * 0.3;
+        break;
+      case 'uranus':
+        mesh.rotation.y += speed;
+        mesh.children[1].rotation.x += speed * 1.5;
+        mesh.position.z += Math.sin(t * 0.25 + index) * 0.4;
+        break;
+      case 'moon':
+        mesh.rotation.y += speed;
+        mesh.position.y += Math.sin(t * 0.4 + index) * 0.8;
+        mesh.children[0].material.emissiveIntensity = 0.4 + Math.sin(t * 2) * 0.2;
+        break;
+      case 'mars':
+        mesh.rotation.y += speed;
+        mesh.rotation.z += speed * 0.3;
+        break;
+      case 'nebula':
+        mesh.rotation.y += speed * 0.5;
+        mesh.rotation.x += speed * 0.3;
+        mesh.children[0].material.opacity = 0.4 + Math.sin(t + index) * 0.2;
+        break;
+      case 'asteroid':
+        mesh.rotation.x += speed;
+        mesh.rotation.y += speed * 1.5;
+        mesh.rotation.z += speed * 0.8;
+        break;
+      case 'torus':
+        mesh.rotation.x += speed;
+        mesh.rotation.y += speed * 0.7;
+        mesh.position.y += Math.cos(t * 0.35 + index) * 0.6;
+        break;
+      case 'crystal':
+        mesh.rotation.x += speed;
+        mesh.rotation.y += speed * 1.2;
+        mesh.children[0].material.emissiveIntensity = 0.3 + Math.sin(t * 3) * 0.2;
+        mesh.position.y += Math.sin(t * 0.5 + index) * 0.7;
+        break;
+    }
   });
 
   renderer.render(scene, camera);
