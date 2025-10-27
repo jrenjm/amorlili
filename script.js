@@ -482,304 +482,154 @@ for (let i = 0; i < galaxyPositions.length; i++) {
   galaxies.push(galaxy);
 }
 
-// 🎮 CONTROLES DE MOVIMIENTO LIBRE UNIFICADOS
+// 🎮 CONTROLES DE MOVIMIENTO LIBRE SUAVE UNIVERSAL
 const keys = {};
-window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+window.addEventListener("keydown", e => (keys[e.key.toLowerCase()] = true));
+window.addEventListener("keyup", e => (keys[e.key.toLowerCase()] = false));
 
 let dragging = false, lastX = 0, lastY = 0;
 
-// Variables para zoom unificado
+// Variables para zoom y movimiento táctil
 let touchStartDistance = 0;
 let initialFov = camera.fov;
 let isZooming = false;
 
-// === DETECCIÓN DE DISPOSITIVO ===
+// Detectar si es móvil
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// Configuración unificada para todos los dispositivos
-const ZOOM_SENSITIVITY = isMobile ? 0.8 : 0.8; // Más sensible en móvil
-const ROTATION_SENSITIVITY = isMobile ? 0.004 : 0.004; // Similar sensibilidad
-const MOVE_SPEED = isMobile ? 6 : 6; // Velocidad similar
+// Sensibilidades y velocidades ajustadas para suavidad
+const MOVE_SPEED = 5;
+const ROTATION_SENSITIVITY = 0.0035;
+const ZOOM_SENSITIVITY = 0.15;
+const SMOOTHNESS = 0.08;
 
+// Objetivos para suavizar la interpolación
+let targetPos = { ...cameraPos };
+let targetRot = { ...cameraRotation };
+
+// === Eventos de ratón ===
 canvas.addEventListener("mousedown", e => {
   dragging = true;
   lastX = e.clientX;
   lastY = e.clientY;
 });
-canvas.addEventListener("mouseup", () => dragging = false);
-canvas.addEventListener("mouseleave", () => dragging = false);
+canvas.addEventListener("mouseup", () => (dragging = false));
+canvas.addEventListener("mouseleave", () => (dragging = false));
 canvas.addEventListener("mousemove", e => {
   if (!dragging) return;
   const dx = e.clientX - lastX;
   const dy = e.clientY - lastY;
-  
-  // Movimiento suave de rotación
-  targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
-  targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
-  targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
-  isMoving = true;
-  
+  targetRot.yaw -= dx * ROTATION_SENSITIVITY;
+  targetRot.pitch -= dy * ROTATION_SENSITIVITY;
+  targetRot.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRot.pitch));
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
-// === CONTROLES TÁCTILES UNIFICADOS ===
+// === Zoom con rueda ===
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  targetPos.z += e.deltaY * ZOOM_SENSITIVITY;
+  targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
+});
+
+// === Control táctil (rotación + zoom multitáctil) ===
 canvas.addEventListener("touchstart", e => {
   if (e.touches.length === 1) {
-    // Un dedo: rotar cámara
     dragging = true;
-    const touch = e.touches[0];
-    lastX = touch.clientX;
-    lastY = touch.clientY;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
   } else if (e.touches.length === 2) {
-    // Dos dedos: zoom
     isZooming = true;
-    touchStartDistance = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    touchStartDistance = Math.hypot(dx, dy);
     initialFov = camera.fov;
   }
-}, { passive: true });
-
+});
 canvas.addEventListener("touchend", () => {
   dragging = false;
   isZooming = false;
-  touchStartDistance = 0;
-}, { passive: true });
-
+});
 canvas.addEventListener("touchmove", e => {
-  if (e.touches.length === 1 && dragging) {
-    // Un dedo: rotar cámara
-    const touch = e.touches[0];
-    const dx = touch.clientX - lastX;
-    const dy = touch.clientY - lastY;
-    
-    // Movimiento suave de rotación
-    targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
-    targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
-    targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
-    isMoving = true;
-    
-    lastX = touch.clientX;
-    lastY = touch.clientY;
-  } else if (e.touches.length === 2 && isZooming) {
-    // Dos dedos: zoom con pellizco - SIN LÍMITES
-    const currentDistance = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    
-    if (touchStartDistance > 0) {
-      const zoomFactor = touchStartDistance / currentDistance;
-      
-      // Zoom mediante movimiento de cámara en lugar de FOV - SIN LÍMITES
-      const forward = new THREE.Vector3(
-        Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
-        Math.sin(cameraRotation.pitch),
-        Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
-      );
-      
-      const zoomAmount = (zoomFactor - 1) * 50 * ZOOM_SENSITIVITY;
-      targetCameraPos.x += forward.x * zoomAmount;
-      targetCameraPos.y += forward.y * zoomAmount;
-      targetCameraPos.z += forward.z * zoomAmount;
-      isMoving = true;
-    }
-    
-    touchStartDistance = currentDistance;
+  if (isZooming && e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const distance = Math.hypot(dx, dy);
+    const delta = (touchStartDistance - distance) * 0.02;
+    targetPos.z += delta * 50;
+    targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
+  } else if (dragging && e.touches.length === 1) {
+    const dx = e.touches[0].clientX - lastX;
+    const dy = e.touches[0].clientY - lastY;
+    targetRot.yaw -= dx * ROTATION_SENSITIVITY * 2;
+    targetRot.pitch -= dy * ROTATION_SENSITIVITY * 2;
+    targetRot.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRot.pitch));
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
   }
-}, { passive: true });
+});
 
-// === ZOOM CON RUEDA UNIFICADO - SIN LÍMITES ===
-canvas.addEventListener("wheel", e => {
-  e.preventDefault();
-  
-  const forward = new THREE.Vector3(
-    Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
-    Math.sin(cameraRotation.pitch),
-    Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
-  );
-  
-  // Zoom mediante movimiento de cámara - SIN LÍMITES
-  const zoomSpeed = e.deltaY * ZOOM_SENSITIVITY;
-  targetCameraPos.x += forward.x * zoomSpeed;
-  targetCameraPos.y += forward.y * zoomSpeed;
-  targetCameraPos.z += forward.z * zoomSpeed;
-  isMoving = true;
-}, { passive: false });
-
-// 💓 Animación de latidos
-let heartPulse = 0;
-function animateHearts() {
-  heartPulse += 0.05;
-  galaxies.forEach(galaxy => {
-    const heartScale = 8 + Math.sin(heartPulse) * 0.5;
-    galaxy.heart.scale.set(heartScale, heartScale, heartScale);
-
-    const textScaleX = 120 + Math.sin(heartPulse) * 8;
-    const textScaleY = 50 + Math.sin(heartPulse) * 4;
-    galaxy.text.scale.set(textScaleX, textScaleY, 1);
-    galaxy.text.material.opacity = 0.85 + Math.sin(heartPulse) * 0.15;
-  });
-  requestAnimationFrame(animateHearts);
+// === Función para interpolar suavemente ===
+function lerp(a, b, t) {
+  return a + (b - a) * t;
 }
-animateHearts();
 
-// === Loop de animación principal optimizado ===
-let t = 0;
-function tick() {
-  requestAnimationFrame(tick);
-  t += 0.01;
+// === Bucle de animación ===
+function animate() {
+  requestAnimationFrame(animate);
 
-  const forward = new THREE.Vector3(
-    Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
-    Math.sin(cameraRotation.pitch),
-    Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
-  );
-  const right = new THREE.Vector3(
-    Math.sin(cameraRotation.yaw + Math.PI / 2),
-    0,
-    Math.cos(cameraRotation.yaw + Math.PI / 2)
-  );
+  // Movimiento WASD suave
+  const forward = keys["w"] ? 1 : keys["s"] ? -1 : 0;
+  const right = keys["d"] ? 1 : keys["a"] ? -1 : 0;
+  const up = keys[" "] ? 1 : keys["shift"] ? -1 : 0;
 
-  // Controles de teclado con movimiento suave
-  if (keys['w'] || keys['arrowup']) {
-    targetCameraPos.x += forward.x * MOVE_SPEED;
-    targetCameraPos.y += forward.y * MOVE_SPEED;
-    targetCameraPos.z += forward.z * MOVE_SPEED;
-    isMoving = true;
-  }
-  if (keys['s'] || keys['arrowdown']) {
-    targetCameraPos.x -= forward.x * MOVE_SPEED;
-    targetCameraPos.y -= forward.y * MOVE_SPEED;
-    targetCameraPos.z -= forward.z * MOVE_SPEED;
-    isMoving = true;
-  }
-  if (keys['a'] || keys['arrowleft']) {
-    targetCameraPos.x -= right.x * MOVE_SPEED;
-    targetCameraPos.z -= right.z * MOVE_SPEED;
-    isMoving = true;
-  }
-  if (keys['d'] || keys['arrowright']) {
-    targetCameraPos.x += right.x * MOVE_SPEED;
-    targetCameraPos.z += right.z * MOVE_SPEED;
-    isMoving = true;
-  }
-  if (keys[' ']) {
-    targetCameraPos.y += MOVE_SPEED;
-    isMoving = true;
-  }
-  if (keys['shift']) {
-    targetCameraPos.y -= MOVE_SPEED;
-    isMoving = true;
-  }
+  const speed = MOVE_SPEED;
+  const sinY = Math.sin(targetRot.yaw);
+  const cosY = Math.cos(targetRot.yaw);
 
-  // Aplicar movimiento suave a la cámara
-  if (isMoving) {
-    cameraPos.x += (targetCameraPos.x - cameraPos.x) * SMOOTHNESS;
-    cameraPos.y += (targetCameraPos.y - cameraPos.y) * SMOOTHNESS;
-    cameraPos.z += (targetCameraPos.z - cameraPos.z) * SMOOTHNESS;
-    
-    cameraRotation.yaw += (targetCameraRotation.yaw - cameraRotation.yaw) * SMOOTHNESS;
-    cameraRotation.pitch += (targetCameraRotation.pitch - cameraRotation.pitch) * SMOOTHNESS;
-    
-    // Si estamos muy cerca del objetivo, detener el movimiento
-    if (Math.abs(targetCameraPos.x - cameraPos.x) < 0.1 &&
-        Math.abs(targetCameraPos.y - cameraPos.y) < 0.1 &&
-        Math.abs(targetCameraPos.z - cameraPos.z) < 0.1 &&
-        Math.abs(targetCameraRotation.yaw - cameraRotation.yaw) < 0.001 &&
-        Math.abs(targetCameraRotation.pitch - cameraRotation.pitch) < 0.001) {
-      isMoving = false;
-    }
-  }
+  targetPos.x += (right * cosY - forward * sinY) * speed;
+  targetPos.z += (forward * cosY + right * sinY) * speed;
+  targetPos.y += up * speed;
 
+  // Interpolación suave de posición y rotación
+  cameraPos.x = lerp(cameraPos.x, targetPos.x, SMOOTHNESS);
+  cameraPos.y = lerp(cameraPos.y, targetPos.y, SMOOTHNESS);
+  cameraPos.z = lerp(cameraPos.z, targetPos.z, SMOOTHNESS);
+
+  cameraRotation.yaw = lerp(cameraRotation.yaw, targetRot.yaw, SMOOTHNESS);
+  cameraRotation.pitch = lerp(cameraRotation.pitch, targetRot.pitch, SMOOTHNESS);
+
+  // Actualizar posición y orientación
   camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
+  camera.rotation.set(cameraRotation.pitch, cameraRotation.yaw, 0);
 
-  const lookAt = new THREE.Vector3(
-    cameraPos.x + forward.x * 100,
-    cameraPos.y + forward.y * 100,
-    cameraPos.z + forward.z * 100
-  );
-  camera.lookAt(lookAt);
+  // Animación de galaxias, estrellas, etc.
+  galaxies.forEach(g => {
+    g.ring1.rotation.z += 0.001;
+    g.ring2.rotation.z -= 0.001;
+    g.ring3.rotation.z += 0.0005;
 
-  // Animación de galaxias
-  galaxies.forEach(galaxy => {
-    galaxy.ring1.rotation.z += 0.003;
-    galaxy.ring2.rotation.z -= 0.0025;
-    galaxy.ring3.rotation.z += 0.002;
-
-    galaxy.ring1.rotation.x = Math.PI / 2 + Math.sin(t * 0.5) * 0.1;
-    galaxy.ring2.rotation.x = Math.PI / 2 + Math.cos(t * 0.6) * 0.12;
-    galaxy.ring3.rotation.x = Math.PI / 2 + Math.sin(t * 0.4) * 0.08;
-
-    // Animación de palabras con efectos mejorados
-    galaxy.textGroup.children.forEach(sprite => {
-      const pulse = Math.sin(t * sprite.userData.pulseSpeed + sprite.userData.pulseOffset) * 0.25;
-      sprite.material.opacity = 0.75 + 0.25 * Math.sin(2 * t) + pulse;
-      sprite.userData.theta += sprite.userData.speed;
-      sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
-      sprite.position.y = sprite.userData.radius * Math.cos(sprite.userData.phi);
-      sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
-      
-      // Efecto de escala sutil
-      const scaleEffect = 1 + Math.sin(t * 2 + sprite.userData.pulseOffset) * 0.1;
-      sprite.scale.set(45 * scaleEffect, 14 * scaleEffect, 1);
+    g.textGroup.children.forEach(s => {
+      s.userData.theta += s.userData.speed;
+      s.position.x = s.userData.radius * Math.sin(s.userData.phi) * Math.cos(s.userData.theta);
+      s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
+      const scalePulse = 1 + 0.15 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
+      s.scale.set(45 * scalePulse, 14 * scalePulse, 1);
     });
 
-    // Animación de fotos con efectos mejorados
-    galaxy.imageGroup.children.forEach(sprite => {
-      const pulse = Math.sin(t * sprite.userData.pulseSpeed + sprite.userData.pulseOffset) * 0.15;
-      sprite.material.opacity = 0.85 + 0.15 * Math.sin(2 * t) + pulse;
-      sprite.userData.theta += sprite.userData.speed;
-      sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
-      sprite.position.y = sprite.userData.radius * Math.cos(sprite.userData.phi);
-      sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
-      
-      // Rotación suave de las fotos
-      sprite.rotation.z += 0.001;
-    });
-
-    // Animación de estrellas alrededor de la galaxia
-    if (galaxy.stars) {
-      const positions = galaxy.stars.geometry.attributes.position.array;
-      const velocities = galaxy.stars.userData.velocities;
-      const originalPositions = galaxy.stars.userData.originalPositions;
-      
-      for (let i = 0; i < positions.length; i += 3) {
-        // Movimiento orbital suave
-        positions[i] += velocities[i] * Math.sin(t * 0.5);
-        positions[i + 1] += velocities[i + 1] * Math.cos(t * 0.3);
-        positions[i + 2] += velocities[i + 2] * Math.sin(t * 0.4);
-        
-        // Efecto de pulsación sutil
-        const pulse = Math.sin(t * 2 + i * 0.01) * 0.5;
-        positions[i] = originalPositions[i] + pulse;
-        positions[i + 1] = originalPositions[i + 1] + pulse;
-        positions[i + 2] = originalPositions[i + 2] + pulse;
-      }
-      
-      galaxy.stars.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // Hacer que elementos miren a la cámara
-    galaxy.group.children.forEach(child => {
-      if (child instanceof THREE.Mesh || child instanceof THREE.Sprite) {
-        if (child.geometry && child.geometry.type !== "RingGeometry") {
-          child.lookAt(camera.position);
-        }
-      }
+    g.imageGroup.children.forEach(s => {
+      s.userData.theta += s.userData.speed;
+      s.position.x = s.userData.radius * Math.sin(s.userData.phi) * Math.cos(s.userData.theta);
+      s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
+      const scalePulse = 1 + 0.2 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
+      s.scale.set(40 * scalePulse, 40 * scalePulse, 1);
     });
   });
 
   renderer.render(scene, camera);
 }
-tick();
 
-// Responsive
-window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
+animate();
+
+
