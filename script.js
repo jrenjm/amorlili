@@ -226,29 +226,40 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   heartMesh.scale.set(8, 8, 8);
   galaxyGroup.add(heartMesh);
 
-  // === Texto central ===
-  function makeTextTexture(text) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 4096;
-    canvas.height = 1024;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "bold 500px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
-    ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
-    ctx.shadowBlur = 60;
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    return new THREE.CanvasTexture(canvas);
-  }
+  // === Texto central MEJORADO - Versión dinámica ===
+function makeTextTexture(text) {
+  // Calcular el ancho necesario basado en la longitud del texto
+  const tempCanvas = document.createElement("canvas");
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.font = "bold 450px Arial";
+  const textWidth = tempCtx.measureText(text).width;
+  
+  // Crear canvas con tamaño dinámico
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(4096, textWidth + 800); // Mínimo 4096, más espacio extra
+  canvas.height = 1024;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.font = "bold 450px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
+  ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
+  ctx.shadowBlur = 60;
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  return new THREE.CanvasTexture(canvas);
+}
 
-  const centerTex = makeTextTexture(textContent);
-  const centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false });
-  const centerSprite = new THREE.Sprite(centerMat);
-  centerSprite.scale.set(120, 50, 1);
-  centerSprite.position.set(0, 50, 0);
-  galaxyGroup.add(centerSprite);
+const centerTex = makeTextTexture(textContent);
+const centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false });
+const centerSprite = new THREE.Sprite(centerMat);
+
+// Escala dinámica basada en el ancho del texto
+const scaleX = 120 + (textContent.length * 2); // Ajusta según la longitud del texto
+centerSprite.scale.set(scaleX, 50, 1);
+centerSprite.position.set(0, 50, 0);
+galaxyGroup.add(centerSprite);
 
   // === Luz ===
   const light = new THREE.PointLight(colorHex, 1.5, 800);
