@@ -97,13 +97,14 @@ const nebulaTex = loader.load("https://jrenjm.github.io/amorlili/space.jpg");
 scene.background = nebulaTex;
 
 // === Estrellas de fondo mejoradas ===
-(function(count = 8000, spread = 12000) {
+(function(count = 10000, spread = 15000) {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(3 * count);
   const colors = new Float32Array(3 * count);
+  const sizes = new Float32Array(count);
   
   for (let i = 0; i < count; i++) {
-    const radius = spread * (0.3 + 0.7 * Math.random());
+    const radius = spread * (0.2 + 0.8 * Math.random());
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     
@@ -113,28 +114,34 @@ scene.background = nebulaTex;
     
     // Colores variados para estrellas
     const starColor = Math.random();
-    if (starColor < 0.7) {
+    if (starColor < 0.6) {
       colors[3 * i + 0] = 1; colors[3 * i + 1] = 1; colors[3 * i + 2] = 1; // Blanco
-    } else if (starColor < 0.85) {
+    } else if (starColor < 0.8) {
       colors[3 * i + 0] = 1; colors[3 * i + 1] = 0.9; colors[3 * i + 2] = 0.8; // Amarillo
-    } else {
+    } else if (starColor < 0.9) {
       colors[3 * i + 0] = 0.8; colors[3 * i + 1] = 0.9; colors[3 * i + 2] = 1; // Azul
+    } else {
+      colors[3 * i + 0] = 1; colors[3 * i + 1] = 0.8; colors[3 * i + 2] = 0.8; // Rojo
     }
+    
+    sizes[i] = 0.5 + Math.random() * 2;
   }
   
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
   
   scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({
-    size: 1.5,
+    size: 1.8,
     vertexColors: true,
+    sizeAttenuation: true,
     depthWrite: false,
     transparent: true,
     opacity: 0.9
   })));
 })();
 
-// 🌌 PALABRAS BONITAS (más de 150 por galaxia)
+// 🌌 PALABRAS BONITAS (MÁS DE 250 PARA GARANTIZAR 200 POR GALAXIA)
 const ALL_WORDS = [
   "💖 Mi amor", "🌞 Mi sol", "🌎 Mi mundo", "✨ Brillas", "❤️ Te amo", "🌌 Universo",
   "👑 Mi reina", "🌠 Estrella", "💫 Mi cielo", "🔥 Siempre tú", "🎶 Tu risa", "🦋 Libertad",
@@ -166,7 +173,21 @@ const ALL_WORDS = [
   "💝 Regalo divino", "🌹 Rosas", "💐 Ramo", "🎁 Sorpresa", "💖 Latidos", "🌊 Océano",
   "🏞️ Paisaje", "🌋 Volcán", "🌈 Arco iris", "⚡ Relámpago", "🌧️ Lluvia", "❄️ Nieve",
   "🔥 Fuego", "💧 Agua", "🌬️ Viento", "🌍 Planeta", "🚀 Cohete", "👼 Ángel",
-  "💑 Pareja", "💒 Boda", "💍 Anillo", "👶 Bebé", "🏡 Hogar", "💞 Compromiso"
+  "💑 Pareja", "💒 Boda", "💍 Anillo", "👶 Bebé", "🏡 Hogar", "💞 Compromiso",
+  "🌹 Rosa roja", "💝 Corazón", "🌟 Brillante", "✨ Estrella", "💕 Amor", "🌙 Luna",
+  "🌞 Sol", "🌈 Arcoíris", "🌺 Flor", "🌻 Girasol", "🌸 Cerezo", "🌷 Tulipán",
+  "🍀 Trébol", "💎 Diamante", "🔥 Fuego", "💧 Agua", "🌪️ Viento", "🌍 Tierra",
+  "💖 Amor", "💘 Enamorado", "💝 Regalo", "💕 Cariño", "💞 Romance", "💗 Afecto",
+  "🌟 Estrella", "✨ Magia", "🌠 Cometa", "💫 Espiral", "🌌 Galaxia", "🪐 Planeta",
+  "🎶 Música", "🎵 Canción", "🎸 Guitarra", "🎻 Violín", "🎹 Piano", "🥁 Tambor",
+  "💃 Baile", "🎭 Teatro", "🎨 Arte", "📷 Foto", "🎬 Cine", "📚 Libro",
+  "🏆 Trofeo", "🎖️ Medalla", "👑 Corona", "💍 Anillo", "💎 Joya", "🌟 Premio",
+  "🌅 Amanecer", "🌇 Atardecer", "🌃 Noche", "🌄 Alba", "🌆 Ciudad", "🏞️ Naturaleza",
+  "🏖️ Playa", "🏔️ Montaña", "🌊 Mar", "🌳 Bosque", "🌺 Jardín", "🍃 Brisa",
+  "☀️ Verano", "❄️ Invierno", "🌸 Primavera", "🍁 Otoño", "🌧️ Lluvia", "🌈 Arcoíris",
+  "💝 Detalle", "🎁 Obsequio", "💐 Flores", "🍫 Chocolate", "💌 Carta", "📿 Detalle",
+  "👫 Juntos", "💑 Pareja", "👨‍👩‍👧‍👦 Familia", "🤝 Amigos", "💞 Unión", "👥 Compañía",
+  "🎉 Fiesta", "🎊 Celebración", "🎈 Globos", "🎂 Pastel", "🥂 Brindis", "🎇 Fuegos"
 ];
 
 // 🌌 CONFIGURACIÓN DE 3 GALAXIAS
@@ -185,8 +206,8 @@ for (let i = shuffledPhotos.length - 1; i > 0; i--) {
 // Posiciones de las 3 galaxias con textos únicos
 const galaxyPositions = [
   {x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA"},
-  {x: 1800, y: 400, z: -1000, color: 0xff66ff, name: "ERES MI TODO"},
-  {x: -1600, y: -300, z: 1200, color: 0x66ccff, name: "MI PRINCESA"}
+  {x: 2000, y: 500, z: -1200, color: 0xff66ff, name: "ERES MI TODO"},
+  {x: -1800, y: -400, z: 1500, color: 0x66ccff, name: "MI PRINCESA"}
 ];
 
 // === Función para crear una galaxia MEJORADA ===
@@ -205,10 +226,10 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const extrudeSettings = {
     depth: 3,
     bevelEnabled: true,
-    bevelSegments: 5,
-    steps: 3,
-    bevelSize: 0.5,
-    bevelThickness: 0.5
+    bevelSegments: 6,
+    steps: 4,
+    bevelSize: 0.6,
+    bevelThickness: 0.6
   };
 
   const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
@@ -216,24 +237,24 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
 
   const heartMaterial = new THREE.MeshPhongMaterial({
     color: colorHex,
-    shininess: 400,
+    shininess: 500,
     emissive: colorHex,
-    emissiveIntensity: 0.4,
+    emissiveIntensity: 0.5,
     specular: 0xffffff,
     transparent: true,
     opacity: 0.95
   });
 
   const heartMesh = new THREE.Mesh(heartGeometry, heartMaterial);
-  heartMesh.scale.set(10, 10, 10);
+  heartMesh.scale.set(12, 12, 12);
   galaxyGroup.add(heartMesh);
 
   // Efecto de glow alrededor del corazón
-  const heartGlowGeometry = new THREE.SphereGeometry(15, 16, 16);
+  const heartGlowGeometry = new THREE.SphereGeometry(18, 20, 20);
   const heartGlowMaterial = new THREE.MeshBasicMaterial({
     color: colorHex,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.25,
     side: THREE.DoubleSide
   });
   const heartGlow = new THREE.Mesh(heartGlowGeometry, heartGlowMaterial);
@@ -246,14 +267,14 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
     canvas.height = 512;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "bold 180px Arial";
+    ctx.font = "bold 200px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
     ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
-    ctx.shadowBlur = 50;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    ctx.shadowBlur = 60;
+    ctx.shadowOffsetX = 4;
+    ctx.shadowOffsetY = 4;
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
     return new THREE.CanvasTexture(canvas);
   }
@@ -263,67 +284,72 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
     map: centerTex, 
     transparent: true, 
     depthTest: false,
-    opacity: 0.9
+    opacity: 0.92
   });
   const centerSprite = new THREE.Sprite(centerMat);
-  centerSprite.scale.set(150, 45, 1);
-  centerSprite.position.set(0, 70, 0);
+  centerSprite.scale.set(180, 55, 1);
+  centerSprite.position.set(0, 80, 0);
   galaxyGroup.add(centerSprite);
 
   // === Luz MEJORADA ===
-  const light = new THREE.PointLight(colorHex, 2, 1000);
+  const light = new THREE.PointLight(colorHex, 2.5, 1200);
   galaxyGroup.add(light);
 
-  // === ANILLOS DINÁMICOS MEJORADOS (5 anillos) ===
+  // === ANILLOS DINÁMICOS MEJORADOS (6 anillos) ===
   const rings = [];
-  const ringCount = 5;
+  const ringCount = 6;
   
   for (let i = 0; i < ringCount; i++) {
-    const innerRadius = 60 + i * 25;
-    const outerRadius = innerRadius + 20;
+    const innerRadius = 70 + i * 30;
+    const outerRadius = innerRadius + 25;
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(innerRadius, outerRadius, 64),
+      new THREE.RingGeometry(innerRadius, outerRadius, 72),
       new THREE.MeshBasicMaterial({
         color: colorHex, 
         transparent: true, 
-        opacity: 0.3 - i * 0.05, 
+        opacity: 0.25 - i * 0.03, 
         side: THREE.DoubleSide
       })
     );
     
-    // Alternar orientación de anillos para efecto 3D
-    if (i % 2 === 0) {
+    // Orientación variada para efecto 3D
+    const orientation = i % 3;
+    if (orientation === 0) {
       ring.rotation.x = Math.PI / 2;
-    } else {
+    } else if (orientation === 1) {
       ring.rotation.y = Math.PI / 2;
+    } else {
+      ring.rotation.x = Math.PI / 4;
+      ring.rotation.y = Math.PI / 4;
     }
     
     ring.userData = {
-      speed: 0.001 + i * 0.0005,
-      pulseSpeed: 0.02 + i * 0.01,
+      speed: 0.0012 + i * 0.0004,
+      pulseSpeed: 0.025 + i * 0.008,
       pulse: Math.random() * Math.PI * 2,
-      originalScale: 1
+      originalScale: 1,
+      rotationAxis: orientation
     };
     
     rings.push(ring);
     galaxyGroup.add(ring);
   }
 
-  // === Palabras flotantes (150 POR GALAXIA) ===
+  // === Palabras flotantes (200 POR GALAXIA) ===
   function makeWordTexture(text, color) {
     const canvas = document.createElement("canvas");
     canvas.width = 512;
     canvas.height = 128;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "bold 50px Arial";
+    ctx.font = "bold 55px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#ffffff";
     ctx.shadowColor = color;
-    ctx.shadowBlur = 25;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
     return new THREE.CanvasTexture(canvas);
   }
@@ -331,22 +357,22 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
   const textGroup = new THREE.Group();
 
-  // Crear 150 palabras flotantes por galaxia
-  for (let i = 0; i < 150; i++) {
+  // Crear 200 palabras flotantes por galaxia
+  for (let i = 0; i < 200; i++) {
     const word = ALL_WORDS[i % ALL_WORDS.length];
     const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
     const material = new THREE.SpriteMaterial({
       map: texture, 
       transparent: true,
-      opacity: 0.85
+      opacity: 0.88
     });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(55, 18, 1);
+    sprite.scale.set(60, 20, 1);
     
-    // Distribución en esfera más densa
+    // Distribución en esfera más densa y variada
     const phi = Math.acos(2 * Math.random() - 1);
     const theta = Math.random() * Math.PI * 2;
-    const radius = 120 + 180 * Math.random(); // Más cerca del centro
+    const radius = 100 + 200 * Math.pow(Math.random(), 1.5); // Más concentración cerca del centro
     
     sprite.position.set(
       radius * Math.sin(phi) * Math.cos(theta),
@@ -359,9 +385,10 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
       theta, 
       radius,
       originalRadius: radius,
-      speed: 0.0004 + 0.0008 * Math.random(),
-      pulseSpeed: 0.01 + Math.random() * 0.02,
-      pulse: Math.random() * Math.PI * 2
+      speed: 0.0003 + 0.0007 * Math.random(),
+      pulseSpeed: 0.008 + Math.random() * 0.015,
+      pulse: Math.random() * Math.PI * 2,
+      orbitSpeed: 0.0001 + 0.0002 * Math.random()
     };
     textGroup.add(sprite);
   }
@@ -374,7 +401,7 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const galaxyPhotos = shuffledPhotos.slice(startIndex, endIndex);
 
   const imgLoader = new THREE.TextureLoader();
-  galaxyPhotos.forEach(photoNum => {
+  galaxyPhotos.forEach((photoNum, index) => {
     const path = `https://jrenjm.github.io/amorlili/recuerdos/f${photoNum}.jpg`;
     imgLoader.load(
       path,
@@ -382,14 +409,14 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
         const mat = new THREE.SpriteMaterial({
           map: texture, 
           transparent: true,
-          opacity: 0.9
+          opacity: 0.92
         });
         const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(45, 45, 1);
+        sprite.scale.set(50, 50, 1);
         
         const phi = Math.acos(2 * Math.random() - 1);
         const theta = Math.random() * Math.PI * 2;
-        const radius = 160 + 140 * Math.random();
+        const radius = 150 + 160 * Math.random();
         
         sprite.position.set(
           radius * Math.sin(phi) * Math.cos(theta),
@@ -402,14 +429,46 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
           theta, 
           radius,
           originalRadius: radius,
-          speed: 0.0003 + 0.0006 * Math.random(),
-          pulseSpeed: 0.008 + Math.random() * 0.015,
-          pulse: Math.random() * Math.PI * 2
+          speed: 0.0002 + 0.0005 * Math.random(),
+          pulseSpeed: 0.006 + Math.random() * 0.012,
+          pulse: Math.random() * Math.PI * 2,
+          orbitSpeed: 0.00008 + 0.00015 * Math.random()
         };
         imageGroup.add(sprite);
       },
       undefined,
-      error => console.error(`Error loading image f${photoNum}.jpg:`, error)
+      error => {
+        console.error(`Error loading image f${photoNum}.jpg:`, error);
+        // Crear un placeholder si la imagen falla
+        const placeholderGeometry = new THREE.PlaneGeometry(40, 40);
+        const placeholderMaterial = new THREE.MeshBasicMaterial({
+          color: colorHex,
+          transparent: true,
+          opacity: 0.3
+        });
+        const placeholder = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
+        
+        const phi = Math.acos(2 * Math.random() - 1);
+        const theta = Math.random() * Math.PI * 2;
+        const radius = 150 + 160 * Math.random();
+        
+        placeholder.position.set(
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
+        );
+        
+        placeholder.userData = {
+          phi, 
+          theta, 
+          radius,
+          originalRadius: radius,
+          speed: 0.0002 + 0.0005 * Math.random(),
+          pulseSpeed: 0.006 + Math.random() * 0.012,
+          pulse: Math.random() * Math.PI * 2
+        };
+        imageGroup.add(placeholder);
+      }
     );
   });
   galaxyGroup.add(imageGroup);
@@ -498,25 +557,25 @@ canvas.addEventListener("wheel", e => {
 // 💓 Animación de latidos MEJORADA
 let heartPulse = 0;
 function animateHearts() {
-  heartPulse += 0.04;
+  heartPulse += 0.035;
   galaxies.forEach(galaxy => {
     // Latido del corazón
-    const heartScale = 10 + Math.sin(heartPulse) * 0.8;
+    const heartScale = 12 + Math.sin(heartPulse) * 1;
     galaxy.heart.scale.set(heartScale, heartScale, heartScale);
     
     // Glow pulsante
-    const glowScale = 1 + Math.sin(heartPulse * 1.5) * 0.3;
+    const glowScale = 1 + Math.sin(heartPulse * 1.6) * 0.4;
     galaxy.heartGlow.scale.set(glowScale, glowScale, glowScale);
-    galaxy.heartGlow.material.opacity = 0.15 + Math.sin(heartPulse * 2) * 0.1;
+    galaxy.heartGlow.material.opacity = 0.2 + Math.sin(heartPulse * 2.2) * 0.15;
     
     // Texto pulsante
-    const textScaleX = 150 + Math.sin(heartPulse) * 12;
-    const textScaleY = 45 + Math.sin(heartPulse) * 8;
+    const textScaleX = 180 + Math.sin(heartPulse) * 15;
+    const textScaleY = 55 + Math.sin(heartPulse) * 10;
     galaxy.text.scale.set(textScaleX, textScaleY, 1);
-    galaxy.text.material.opacity = 0.8 + Math.sin(heartPulse * 1.2) * 0.2;
+    galaxy.text.material.opacity = 0.85 + Math.sin(heartPulse * 1.3) * 0.25;
     
     // Luz pulsante
-    galaxy.light.intensity = 1.5 + Math.sin(heartPulse * 1.8) * 0.8;
+    galaxy.light.intensity = 2 + Math.sin(heartPulse * 2) * 1;
   });
   requestAnimationFrame(animateHearts);
 }
@@ -529,7 +588,7 @@ function tick() {
   t += 0.01;
 
   // 🎮 Movimiento de cámara con teclado (WASD + Flechas)
-  const moveSpeed = 6;
+  const moveSpeed = 7;
   const forward = new THREE.Vector3(
     Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
     Math.sin(cameraRotation.pitch),
@@ -574,22 +633,28 @@ function tick() {
 
   // Animar cada galaxia MEJORADO
   galaxies.forEach(galaxy => {
-    // Anillos dinámicos con pulsación
+    // Anillos dinámicos con pulsación mejorada
     galaxy.rings.forEach((ring, index) => {
-      // Rotación
-      if (index % 2 === 0) {
-        ring.rotation.z += ring.userData.speed;
-      } else {
-        ring.rotation.x += ring.userData.speed;
+      // Rotación según eje asignado
+      switch(ring.userData.rotationAxis) {
+        case 0:
+          ring.rotation.z += ring.userData.speed;
+          break;
+        case 1:
+          ring.rotation.x += ring.userData.speed;
+          break;
+        case 2:
+          ring.rotation.y += ring.userData.speed;
+          break;
       }
       
       // Pulsación
       ring.userData.pulse += ring.userData.pulseSpeed;
-      const pulseScale = 1 + Math.sin(ring.userData.pulse) * 0.15;
+      const pulseScale = 1 + Math.sin(ring.userData.pulse) * 0.2;
       ring.scale.set(pulseScale, pulseScale, pulseScale);
       
       // Opacidad dinámica
-      ring.material.opacity = 0.3 - index * 0.05 + Math.sin(ring.userData.pulse * 1.5) * 0.1;
+      ring.material.opacity = 0.25 - index * 0.03 + Math.sin(ring.userData.pulse * 1.8) * 0.12;
     });
 
     // Palabras flotantes con movimiento orbital mejorado
@@ -597,17 +662,19 @@ function tick() {
       sprite.userData.theta += sprite.userData.speed;
       sprite.userData.pulse += sprite.userData.pulseSpeed;
       
-      // Movimiento orbital con pulsación
-      const currentRadius = sprite.userData.originalRadius + Math.sin(sprite.userData.pulse) * 15;
+      // Movimiento orbital con pulsación y órbita elíptica
+      const radiusVariation = Math.sin(sprite.userData.pulse) * 20;
+      const orbitOffset = Math.sin(sprite.userData.theta * 2) * 10;
+      const currentRadius = sprite.userData.originalRadius + radiusVariation + orbitOffset;
       
       sprite.position.x = currentRadius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
-      sprite.position.y = currentRadius * Math.cos(sprite.userData.phi);
+      sprite.position.y = currentRadius * Math.cos(sprite.userData.phi) + Math.sin(sprite.userData.pulse * 0.5) * 5;
       sprite.position.z = currentRadius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
       
       // Pulsación de opacidad y escala
-      sprite.material.opacity = 0.7 + 0.3 * Math.sin(sprite.userData.pulse * 2);
-      const spriteScale = 1 + Math.sin(sprite.userData.pulse * 1.5) * 0.1;
-      sprite.scale.set(55 * spriteScale, 18 * spriteScale, 1);
+      sprite.material.opacity = 0.75 + 0.25 * Math.sin(sprite.userData.pulse * 2.5);
+      const spriteScale = 1 + Math.sin(sprite.userData.pulse * 1.8) * 0.15;
+      sprite.scale.set(60 * spriteScale, 20 * spriteScale, 1);
       
       // Siempre mirar a la cámara
       sprite.lookAt(camera.position);
@@ -618,15 +685,16 @@ function tick() {
       sprite.userData.theta += sprite.userData.speed;
       sprite.userData.pulse += sprite.userData.pulseSpeed;
       
-      const currentRadius = sprite.userData.originalRadius + Math.sin(sprite.userData.pulse) * 12;
+      const radiusVariation = Math.sin(sprite.userData.pulse) * 15;
+      const currentRadius = sprite.userData.originalRadius + radiusVariation;
       
       sprite.position.x = currentRadius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
-      sprite.position.y = currentRadius * Math.cos(sprite.userData.phi);
+      sprite.position.y = currentRadius * Math.cos(sprite.userData.phi) + Math.sin(sprite.userData.pulse * 0.3) * 8;
       sprite.position.z = currentRadius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
       
-      sprite.material.opacity = 0.8 + 0.2 * Math.sin(sprite.userData.pulse * 1.5);
-      const photoScale = 1 + Math.sin(sprite.userData.pulse) * 0.05;
-      sprite.scale.set(45 * photoScale, 45 * photoScale, 1);
+      sprite.material.opacity = 0.85 + 0.15 * Math.sin(sprite.userData.pulse * 2);
+      const photoScale = 1 + Math.sin(sprite.userData.pulse * 1.2) * 0.08;
+      sprite.scale.set(50 * photoScale, 50 * photoScale, 1);
       
       sprite.lookAt(camera.position);
     });
@@ -642,3 +710,5 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+
+console.log("🌌 3 Galaxias cargadas con 200 palabras cada una y manejo mejorado de fotos!");
