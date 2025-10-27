@@ -19,7 +19,7 @@ const songs = [
   {name:"Tattoo(Cover Español)",src:"playlist/Tattoo(Cover Español).mp3"},
   {name:"Baile Inolvidable",src:"playlist/Baile Inolvidable.mp3"},
   {name:"Enseñame a Bailar",src:"playlist/Enseñame a Bailar.mp3"},
-  {name:"ODESZA-A Moment Apart",src:"playlist/ODESZA-A Moment Apart.mp3"},
+  {name:"ODESZA - A Moment Apart",src:"playlist/ODESZA-A Moment Apart.mp3"},
 ];
 
 function loadSong(index) {
@@ -98,7 +98,7 @@ const nebulaTex = loader.load("https://jrenjm.github.io/amorlili/space.jpg");
 scene.background = nebulaTex;
 
 // === Estrellas de fondo ===
-(function(count = 5000, spread = 10000) {
+(function(count = 8000, spread = 12000) {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(3 * count);
   for (let i = 0; i < count; i++) {
@@ -111,13 +111,15 @@ scene.background = nebulaTex;
   }
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({
-    size: 2,
+    size: 2.5,
     color: 0xffffff,
-    depthWrite: false
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.8
   })));
 })();
 
-// 🌌 PALABRAS BONITAS (mínimo 60 por galaxia)
+// 🌌 PALABRAS BONITAS (más de 200 por galaxia)
 const ALL_WORDS = [
   "💖 Mi amor", "🌞 Mi sol", "🌎 Mi mundo", "✨ Brillas", "❤️ Te amo", "🌌 Universo",
   "👑 Mi reina", "🌠 Estrella", "💫 Mi cielo", "🔥 Siempre tú", "🎶 Tu risa", "🦋 Libertad",
@@ -132,13 +134,25 @@ const ALL_WORDS = [
   "🌅 Resplandor", "🪄 Hechizo", "🎻 Sinfonía", "🌑 Mi luna", "☄️ Cometa", "🌪️ Torbellino",
   "🏔️ Mi cima", "🗻 Mi monte", "🏖️ Mi playa", "🎨 Mi color", "📿 Conexión", "🧿 Protección",
   "💒 Templo", "🕌 Sagrado", "⛪ Bendición", "🎆 Fuegos", "🎑 Contemplar", "🗼 Torre",
-  "🗽 Libertad", "🗿 Eterno", "⚡ Energía", "🌪️ Fuerza", "❄️ Pureza", "☀️ Calidez"
+  "🗽 Libertad", "🗿 Eterno", "⚡ Energía", "🌪️ Fuerza", "❄️ Pureza", "☀️ Calidez",
+  "🌺 Preciosa", "💗 Adorable", "🎀 Delicada", "🌸 Radiante", "✨ Divina", "💝 Tesoro",
+  "🦋 Mariposa", "🌹 Belleza", "💖 Corazón", "🌟 Resplandor", "🎵 Melodía", "🌈 Arcoíris",
+  "🍀 Suerte", "💫 Destello", "🌻 Girasol", "🎶 Armonía", "💕 Adoración", "🌙 Lunita",
+  "⭐ Brillante", "🎨 Obra", "🌊 Ola", "🔥 Llama", "💎 Joya", "🌄 Aurora",
+  "🎭 Musa", "🌺 Florecer", "💜 Violeta", "🌸 Sakura", "✨ Lucero", "🎀 Lazo",
+  "🦄 Fantasía", "🌹 Rosa", "💗 Ternura", "🌟 Fulgor", "🎵 Nota", "🌈 Color",
+  "🍀 Trébol", "💫 Chispa", "🌻 Sol", "🎶 Ritmo", "💕 Afecto", "🌙 Nocturna",
+  "⭐ Astro", "🎨 Lienzo", "🌊 Mar", "🔥 Ardor", "💎 Diamante", "🌄 Alba",
+  "🎭 Escena", "🌺 Jardín", "💜 Amatista", "🌸 Pétalo", "✨ Brillo", "🎀 Moño",
+  "🦋 Vuelo", "🌹 Roja", "💗 Latido", "🌟 Centelleo", "🎵 Eco", "🌈 Prisma",
+  "🍀 Verdor", "💫 Fulgor", "🌻 Campo", "🎶 Verso", "💕 Querer", "🌙 Eclipse",
+  "⭐ Constelación", "🎨 Pincel", "🌊 Marea", "🔥 Fogata", "💎 Cristal", "🌄 Horizonte"
 ];
 
-// 🌌 CONFIGURACIÓN DE GALAXIAS
+// 🌌 CONFIGURACIÓN DE GALAXIAS (solo 3)
 const galaxies = [];
 const totalPhotos = 100;
-const photosPerGalaxy = 20;
+const photosPerGalaxy = 33;
 
 // Mezclar fotos aleatoriamente
 const shuffledPhotos = [];
@@ -148,13 +162,11 @@ for (let i = shuffledPhotos.length - 1; i > 0; i--) {
   [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
 }
 
-// Posiciones de las galaxias con textos únicos
+// Posiciones de las galaxias con textos únicos (solo 3)
 const galaxyPositions = [
   {x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA"},
-  {x: 1500, y: 300, z: -800, color: 0xff66ff, name: "TE QUIERO LILIANA"},
-  {x: -1200, y: -400, z: 1000, color: 0x66ccff, name: "ERES LA MÁS HERMOSA"},
-  {x: 800, y: -600, z: 1500, color: 0xffd36b, name: "MI PRINCESA LILIANA"},
-  {x: -1600, y: 500, z: -600, color: 0xff9966, name: "ERES MI TODO LILIANA"}
+  {x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO"},
+  {x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA"}
 ];
 
 // === Función para crear una galaxia ===
@@ -224,20 +236,25 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const light = new THREE.PointLight(colorHex, 1.5, 800);
   galaxyGroup.add(light);
 
-  // === Anillos ===
+  // === Anillos giratorios con efecto 3D ===
   const ring1 = new THREE.Mesh(
     new THREE.RingGeometry(80, 100, 128),
-    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.5, side: THREE.DoubleSide})
   );
   const ring2 = new THREE.Mesh(
     new THREE.RingGeometry(110, 130, 128),
+    new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
+  );
+  const ring3 = new THREE.Mesh(
+    new THREE.RingGeometry(140, 160, 128),
     new THREE.MeshBasicMaterial({color: colorHex, transparent: true, opacity: 0.2, side: THREE.DoubleSide})
   );
-  ring1.rotation.x = ring2.rotation.x = Math.PI / 2;
+  ring1.rotation.x = ring2.rotation.x = ring3.rotation.x = Math.PI / 2;
   galaxyGroup.add(ring1);
   galaxyGroup.add(ring2);
+  galaxyGroup.add(ring3);
 
-  // === Palabras flotantes (mínimo 60) ===
+  // === Palabras flotantes (mínimo 200) ===
   function makeWordTexture(text, color) {
     const canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -257,22 +274,22 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
   const textGroup = new THREE.Group();
 
-  // Crear mínimo 60 palabras flotantes
-  for (let i = 0; i < 60; i++) {
+  // Crear mínimo 200 palabras flotantes girando
+  for (let i = 0; i < 200; i++) {
     const word = ALL_WORDS[i % ALL_WORDS.length];
     const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
     const material = new THREE.SpriteMaterial({map: texture, transparent: true});
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(50, 16, 1);
+    sprite.scale.set(45, 14, 1);
     const phi = Math.acos(2 * Math.random() - 1);
     const theta = Math.random() * Math.PI * 2;
-    const radius = 150 + 120 * Math.random();
+    const radius = 150 + 150 * Math.random();
     sprite.position.set(
       radius * Math.sin(phi) * Math.cos(theta),
       radius * Math.cos(phi),
       radius * Math.sin(phi) * Math.sin(theta)
     );
-    sprite.userData = {phi, theta, radius, speed: 0.001 + 0.001 * Math.random()};
+    sprite.userData = {phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random()};
     textGroup.add(sprite);
   }
   galaxyGroup.add(textGroup);
@@ -300,7 +317,7 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
         radius * Math.cos(phi),
         radius * Math.sin(phi) * Math.sin(theta)
       );
-      sprite.userData = {phi, theta, radius, speed: 0.001 + 0.001 * Math.random()};
+      sprite.userData = {phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random()};
       imageGroup.add(sprite);
     };
     img.src = path;
@@ -315,6 +332,7 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
     text: centerSprite,
     ring1,
     ring2,
+    ring3,
     textGroup,
     imageGroup
   };
@@ -456,20 +474,31 @@ function tick() {
 
   // Animar cada galaxia
   galaxies.forEach(galaxy => {
-    galaxy.ring1.rotation.z += 0.002;
-    galaxy.ring2.rotation.z -= 0.0015;
+    // Anillos giratorios con movimiento ondulante
+    galaxy.ring1.rotation.z += 0.003;
+    galaxy.ring2.rotation.z -= 0.0025;
+    galaxy.ring3.rotation.z += 0.002;
+    
+    // Movimiento ondulante de los anillos
+    galaxy.ring1.rotation.x = Math.PI / 2 + Math.sin(t * 0.5) * 0.1;
+    galaxy.ring2.rotation.x = Math.PI / 2 + Math.cos(t * 0.6) * 0.12;
+    galaxy.ring3.rotation.x = Math.PI / 2 + Math.sin(t * 0.4) * 0.08;
 
+    // Palabras girando alrededor de la galaxia
     galaxy.textGroup.children.forEach(sprite => {
-      sprite.material.opacity = 0.8 + 0.2 * Math.sin(2 * t);
+      sprite.material.opacity = 0.75 + 0.25 * Math.sin(2 * t);
       sprite.userData.theta += sprite.userData.speed;
       sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
+      sprite.position.y = sprite.userData.radius * Math.cos(sprite.userData.phi);
       sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
     });
 
+    // Fotos girando alrededor de la galaxia
     galaxy.imageGroup.children.forEach(sprite => {
-      sprite.material.opacity = 0.9 + 0.1 * Math.sin(2 * t);
+      sprite.material.opacity = 0.85 + 0.15 * Math.sin(2 * t);
       sprite.userData.theta += sprite.userData.speed;
       sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
+      sprite.position.y = sprite.userData.radius * Math.cos(sprite.userData.phi);
       sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
     });
 
