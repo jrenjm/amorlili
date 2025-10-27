@@ -99,6 +99,13 @@ let cameraPos = { x: 0, y: 0, z: 2000 };
 let cameraVelocity = { x: 0, y: 0, z: 0 };
 let cameraRotation = { yaw: Math.PI, pitch: 0 };
 
+// Variables para movimiento suave
+let targetCameraPos = { ...cameraPos };
+let targetCameraRotation = { ...cameraRotation };
+let isMoving = false;
+const SMOOTHNESS = 0.1;
+const ZOOM_SMOOTHNESS = 0.05;
+
 // === Iluminación global ===
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
@@ -137,8 +144,35 @@ loader.load(
   })));
 })();
 
-// 🌌 PALABRAS BONITAS (200 por galaxia)
+// 🌌 PALABRAS BONITAS DUPLICADAS (400 por galaxia)
 const ALL_WORDS = [
+  "💖 Mi amor", "🌞 Mi sol", "🌎 Mi mundo", "✨ Brillas", "❤️ Te amo", "🌌 Universo",
+  "👑 Mi reina", "🌠 Estrella", "💫 Mi cielo", "🔥 Siempre tú", "🎶 Tu risa", "🦋 Libertad",
+  "💎 Eres todo", "🙏 Gracias", "💕 Cariño", "🌹 Amor eterno", "🤗 Abrazos", "🌸 Esperanza",
+  "🌈 Alegría", "🌟 Contigo", "🧸 Ternura", "🎁 Mi razón", "🌙 Mi destino", "💌 Recuerdos",
+  "🕊️ Mi paz", "🪐 Mi universo", "🌊 Mi calma", "💡 Mi luz", "🍒 Dulzura", "🥰 Mi vida",
+  "🎇 Felicidad", "🌻 Alegría", "🌺 Mi flor", "💜 Eternidad", "🌟 Sueños", "✨ Magia",
+  "🎵 Canción", "🔥 Pasión", "⭐ Mi estrella", "🌴 Mi paraíso", "🌄 Amanecer", "🌃 Noche contigo",
+  "🎉 Mi fiesta", "💫 Inspiración", "🎀 Mi ternura", "🍀 Mi fortuna", "🪞 Mi princesa",
+  "🌷 Hermosa", "💝 Regalo", "🎊 Celebración", "🦄 Única", "🌼 Primavera", "🎭 Mi arte",
+  "🍓 Dulce amor", "🎸 Mi melodía", "🌿 Naturaleza", "🔮 Magia pura", "🎪 Mi circo", "🏰 Mi castillo",
+  "🌅 Resplandor", "🪄 Hechizo", "🎻 Sinfonía", "🌑 Mi luna", "☄️ Cometa", "🌪️ Torbellino",
+  "🏔️ Mi cima", "🗻 Mi monte", "🏖️ Mi playa", "🎨 Mi color", "📿 Conexión", "🧿 Protección",
+  "💒 Templo", "🕌 Sagrado", "⛪ Bendición", "🎆 Fuegos", "🎑 Contemplar", "🗼 Torre",
+  "🗽 Libertad", "🗿 Eterno", "⚡ Energía", "🌪️ Fuerza", "❄️ Pureza", "☀️ Calidez",
+  "🌺 Preciosa", "💗 Adorable", "🎀 Delicada", "🌸 Radiante", "✨ Divina", "💝 Tesoro",
+  "🦋 Mariposa", "🌹 Belleza", "💖 Corazón", "🌟 Resplandor", "🎵 Melodía", "🌈 Arcoíris",
+  "🍀 Suerte", "💫 Destello", "🌻 Girasol", "🎶 Armonía", "💕 Adoración", "🌙 Lunita",
+  "⭐ Brillante", "🎨 Obra", "🌊 Ola", "🔥 Llama", "💎 Joya", "🌄 Aurora",
+  "🎭 Musa", "🌺 Florecer", "💜 Violeta", "🌸 Sakura", "✨ Lucero", "🎀 Lazo",
+  "🦄 Fantasía", "🌹 Rosa", "💗 Ternura", "🌟 Fulgor", "🎵 Nota", "🌈 Color",
+  "🍀 Trébol", "💫 Chispa", "🌻 Sol", "🎶 Ritmo", "💕 Afecto", "🌙 Nocturna",
+  "⭐ Astro", "🎨 Lienzo", "🌊 Mar", "🔥 Ardor", "💎 Diamante", "🌄 Alba",
+  "🎭 Escena", "🌺 Jardín", "💜 Amatista", "🌸 Pétalo", "✨ Brillo", "🎀 Moño",
+  "🦋 Vuelo", "🌹 Roja", "💗 Latido", "🌟 Centelleo", "🎵 Eco", "🌈 Prisma",
+  "🍀 Verdor", "💫 Fulgor", "🌻 Campo", "🎶 Verso", "💕 Querer", "🌙 Eclipse",
+  "⭐ Constelación", "🎨 Pincel", "🌊 Marea", "🔥 Fogata", "💎 Cristal", "🌄 Horizonte",
+  // Palabras duplicadas para mayor densidad
   "💖 Mi amor", "🌞 Mi sol", "🌎 Mi mundo", "✨ Brillas", "❤️ Te amo", "🌌 Universo",
   "👑 Mi reina", "🌠 Estrella", "💫 Mi cielo", "🔥 Siempre tú", "🎶 Tu risa", "🦋 Libertad",
   "💎 Eres todo", "🙏 Gracias", "💕 Cariño", "🌹 Amor eterno", "🤗 Abrazos", "🌸 Esperanza",
@@ -187,10 +221,68 @@ const galaxyPositions = [
   { x: -900, y: -250, z: 750, color: 0x66ccff, name: "MI PRINCESA LILIANA" } // Reducidas las distancias
 ];
 
+// === Función para crear estrellas alrededor de una galaxia ===
+function createGalaxyStars(position, count = 300, radius = 400) {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const velocities = new Float32Array(count * 3);
+  
+  for (let i = 0; i < count; i++) {
+    // Posición aleatoria en esfera
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const r = radius * (0.3 + 0.7 * Math.random());
+    
+    const x = r * Math.sin(phi) * Math.cos(theta);
+    const y = r * Math.cos(phi);
+    const z = r * Math.sin(phi) * Math.sin(theta);
+    
+    positions[i * 3] = x + position.x;
+    positions[i * 3 + 1] = y + position.y;
+    positions[i * 3 + 2] = z + position.z;
+    
+    // Color blanco con variaciones sutiles
+    colors[i * 3] = 0.8 + 0.2 * Math.random(); // R
+    colors[i * 3 + 1] = 0.8 + 0.2 * Math.random(); // G
+    colors[i * 3 + 2] = 0.9 + 0.1 * Math.random(); // B
+    
+    // Tamaño aleatorio
+    sizes[i] = 1 + Math.random() * 3;
+    
+    // Velocidad de movimiento orbital
+    velocities[i * 3] = (Math.random() - 0.5) * 0.02;
+    velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
+    velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+  }
+  
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+  
+  const material = new THREE.PointsMaterial({
+    size: 2,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    sizeAttenuation: true
+  });
+  
+  const stars = new THREE.Points(geometry, material);
+  stars.userData = { originalPositions: [...positions], velocities: [...velocities] };
+  return stars;
+}
+
 // === Función para crear una galaxia ===
 function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   const galaxyGroup = new THREE.Group();
   galaxyGroup.position.set(position.x, position.y, position.z);
+
+  // === Estrellas alrededor de la galaxia ===
+  const galaxyStars = createGalaxyStars(position, 400, 500);
+  galaxyGroup.add(galaxyStars);
 
   // === Corazón 3D ===
   const heartShape = new THREE.Shape();
@@ -283,7 +375,7 @@ galaxyGroup.add(centerSprite);
   galaxyGroup.add(ring2);
   galaxyGroup.add(ring3);
 
-  // === Palabras flotantes (200 por galaxia) ===
+  // === Palabras flotantes (400 por galaxia - DUPLICADO) ===
   function makeWordTexture(text, color) {
     const canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -303,7 +395,7 @@ galaxyGroup.add(centerSprite);
   const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
   const textGroup = new THREE.Group();
 
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 400; i++) { // Duplicado de 200 a 400
     const word = ALL_WORDS[i % ALL_WORDS.length];
     const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
@@ -317,7 +409,14 @@ galaxyGroup.add(centerSprite);
       radius * Math.cos(phi),
       radius * Math.sin(phi) * Math.sin(theta)
     );
-    sprite.userData = { phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random() };
+    sprite.userData = { 
+      phi, 
+      theta, 
+      radius, 
+      speed: 0.0008 + 0.0012 * Math.random(),
+      pulseSpeed: 0.5 + Math.random() * 1.5,
+      pulseOffset: Math.random() * Math.PI * 2
+    };
     textGroup.add(sprite);
   }
   galaxyGroup.add(textGroup);
@@ -345,7 +444,14 @@ galaxyGroup.add(centerSprite);
           radius * Math.cos(phi),
           radius * Math.sin(phi) * Math.sin(theta)
         );
-        sprite.userData = { phi, theta, radius, speed: 0.0008 + 0.0012 * Math.random() };
+        sprite.userData = { 
+          phi, 
+          theta, 
+          radius, 
+          speed: 0.0008 + 0.0012 * Math.random(),
+          pulseSpeed: 0.3 + Math.random() * 1.0,
+          pulseOffset: Math.random() * Math.PI * 2
+        };
         imageGroup.add(sprite);
       },
       undefined,
@@ -364,7 +470,8 @@ galaxyGroup.add(centerSprite);
     ring2,
     ring3,
     textGroup,
-    imageGroup
+    imageGroup,
+    stars: galaxyStars
   };
 }
 
@@ -397,9 +504,13 @@ canvas.addEventListener("mousemove", e => {
   if (!dragging) return;
   const dx = e.clientX - lastX;
   const dy = e.clientY - lastY;
-  cameraRotation.yaw -= dx * 0.003;
-  cameraRotation.pitch -= dy * 0.003;
-  cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+  
+  // Movimiento suave de rotación
+  targetCameraRotation.yaw -= dx * 0.003;
+  targetCameraRotation.pitch -= dy * 0.003;
+  targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
+  isMoving = true;
+  
   lastX = e.clientX;
   lastY = e.clientY;
 });
@@ -433,13 +544,17 @@ canvas.addEventListener("touchmove", e => {
     const touch = e.touches[0];
     const dx = touch.clientX - lastX;
     const dy = touch.clientY - lastY;
-    cameraRotation.yaw -= dx * 0.003;
-    cameraRotation.pitch -= dy * 0.003;
-    cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+    
+    // Movimiento suave de rotación
+    targetCameraRotation.yaw -= dx * 0.003;
+    targetCameraRotation.pitch -= dy * 0.003;
+    targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
+    isMoving = true;
+    
     lastX = touch.clientX;
     lastY = touch.clientY;
   } else if (e.touches.length === 2 && touchStartDistance > 0) {
-    // Dos dedos: zoom con pellizco
+    // Dos dedos: zoom con pellizco suave
     const currentDistance = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
@@ -458,9 +573,12 @@ canvas.addEventListener("wheel", e => {
     Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
   );
   const zoomSpeed = e.deltaY * 0.5;
-  cameraPos.x += forward.x * zoomSpeed;
-  cameraPos.y += forward.y * zoomSpeed;
-  cameraPos.z += forward.z * zoomSpeed;
+  
+  // Movimiento suave de zoom
+  targetCameraPos.x += forward.x * zoomSpeed;
+  targetCameraPos.y += forward.y * zoomSpeed;
+  targetCameraPos.z += forward.z * zoomSpeed;
+  isMoving = true;
 });
 
 // 💓 Animación de latidos
@@ -498,27 +616,56 @@ function tick() {
     Math.cos(cameraRotation.yaw + Math.PI / 2)
   );
 
-  // Controles de teclado
+  // Controles de teclado con movimiento suave
   if (keys['w'] || keys['arrowup']) {
-    cameraPos.x += forward.x * moveSpeed;
-    cameraPos.y += forward.y * moveSpeed;
-    cameraPos.z += forward.z * moveSpeed;
+    targetCameraPos.x += forward.x * moveSpeed;
+    targetCameraPos.y += forward.y * moveSpeed;
+    targetCameraPos.z += forward.z * moveSpeed;
+    isMoving = true;
   }
   if (keys['s'] || keys['arrowdown']) {
-    cameraPos.x -= forward.x * moveSpeed;
-    cameraPos.y -= forward.y * moveSpeed;
-    cameraPos.z -= forward.z * moveSpeed;
+    targetCameraPos.x -= forward.x * moveSpeed;
+    targetCameraPos.y -= forward.y * moveSpeed;
+    targetCameraPos.z -= forward.z * moveSpeed;
+    isMoving = true;
   }
   if (keys['a'] || keys['arrowleft']) {
-    cameraPos.x -= right.x * moveSpeed;
-    cameraPos.z -= right.z * moveSpeed;
+    targetCameraPos.x -= right.x * moveSpeed;
+    targetCameraPos.z -= right.z * moveSpeed;
+    isMoving = true;
   }
   if (keys['d'] || keys['arrowright']) {
-    cameraPos.x += right.x * moveSpeed;
-    cameraPos.z += right.z * moveSpeed;
+    targetCameraPos.x += right.x * moveSpeed;
+    targetCameraPos.z += right.z * moveSpeed;
+    isMoving = true;
   }
-  if (keys[' ']) cameraPos.y += moveSpeed;
-  if (keys['shift']) cameraPos.y -= moveSpeed;
+  if (keys[' ']) {
+    targetCameraPos.y += moveSpeed;
+    isMoving = true;
+  }
+  if (keys['shift']) {
+    targetCameraPos.y -= moveSpeed;
+    isMoving = true;
+  }
+
+  // Aplicar movimiento suave a la cámara
+  if (isMoving) {
+    cameraPos.x += (targetCameraPos.x - cameraPos.x) * SMOOTHNESS;
+    cameraPos.y += (targetCameraPos.y - cameraPos.y) * SMOOTHNESS;
+    cameraPos.z += (targetCameraPos.z - cameraPos.z) * SMOOTHNESS;
+    
+    cameraRotation.yaw += (targetCameraRotation.yaw - cameraRotation.yaw) * SMOOTHNESS;
+    cameraRotation.pitch += (targetCameraRotation.pitch - cameraRotation.pitch) * SMOOTHNESS;
+    
+    // Si estamos muy cerca del objetivo, detener el movimiento
+    if (Math.abs(targetCameraPos.x - cameraPos.x) < 0.1 &&
+        Math.abs(targetCameraPos.y - cameraPos.y) < 0.1 &&
+        Math.abs(targetCameraPos.z - cameraPos.z) < 0.1 &&
+        Math.abs(targetCameraRotation.yaw - cameraRotation.yaw) < 0.001 &&
+        Math.abs(targetCameraRotation.pitch - cameraRotation.pitch) < 0.001) {
+      isMoving = false;
+    }
+  }
 
   camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
 
@@ -539,23 +686,54 @@ function tick() {
     galaxy.ring2.rotation.x = Math.PI / 2 + Math.cos(t * 0.6) * 0.12;
     galaxy.ring3.rotation.x = Math.PI / 2 + Math.sin(t * 0.4) * 0.08;
 
-    // Animación de palabras
+    // Animación de palabras con efectos mejorados
     galaxy.textGroup.children.forEach(sprite => {
-      sprite.material.opacity = 0.75 + 0.25 * Math.sin(2 * t);
+      const pulse = Math.sin(t * sprite.userData.pulseSpeed + sprite.userData.pulseOffset) * 0.25;
+      sprite.material.opacity = 0.75 + 0.25 * Math.sin(2 * t) + pulse;
       sprite.userData.theta += sprite.userData.speed;
       sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
       sprite.position.y = sprite.userData.radius * Math.cos(sprite.userData.phi);
       sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
+      
+      // Efecto de escala sutil
+      const scaleEffect = 1 + Math.sin(t * 2 + sprite.userData.pulseOffset) * 0.1;
+      sprite.scale.set(45 * scaleEffect, 14 * scaleEffect, 1);
     });
 
-    // Animación de fotos
+    // Animación de fotos con efectos mejorados
     galaxy.imageGroup.children.forEach(sprite => {
-      sprite.material.opacity = 0.85 + 0.15 * Math.sin(2 * t);
+      const pulse = Math.sin(t * sprite.userData.pulseSpeed + sprite.userData.pulseOffset) * 0.15;
+      sprite.material.opacity = 0.85 + 0.15 * Math.sin(2 * t) + pulse;
       sprite.userData.theta += sprite.userData.speed;
       sprite.position.x = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
       sprite.position.y = sprite.userData.radius * Math.cos(sprite.userData.phi);
       sprite.position.z = sprite.userData.radius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
+      
+      // Rotación suave de las fotos
+      sprite.rotation.z += 0.001;
     });
+
+    // Animación de estrellas alrededor de la galaxia
+    if (galaxy.stars) {
+      const positions = galaxy.stars.geometry.attributes.position.array;
+      const velocities = galaxy.stars.userData.velocities;
+      const originalPositions = galaxy.stars.userData.originalPositions;
+      
+      for (let i = 0; i < positions.length; i += 3) {
+        // Movimiento orbital suave
+        positions[i] += velocities[i] * Math.sin(t * 0.5);
+        positions[i + 1] += velocities[i + 1] * Math.cos(t * 0.3);
+        positions[i + 2] += velocities[i + 2] * Math.sin(t * 0.4);
+        
+        // Efecto de pulsación sutil
+        const pulse = Math.sin(t * 2 + i * 0.01) * 0.5;
+        positions[i] = originalPositions[i] + pulse;
+        positions[i + 1] = originalPositions[i + 1] + pulse;
+        positions[i + 2] = originalPositions[i + 2] + pulse;
+      }
+      
+      galaxy.stars.geometry.attributes.position.needsUpdate = true;
+    }
 
     // Hacer que elementos miren a la cámara
     galaxy.group.children.forEach(child => {
