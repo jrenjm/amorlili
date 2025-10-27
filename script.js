@@ -1185,9 +1185,14 @@ window.addEventListener('resize', () => {
         break;
         
       case 'crystalSphere':
-        mesh.rotation.x += speed * 1.3;
-        mesh.rotation.y += speed * 1.8;
-        mesh.rotation.z += speed * 0.9;
-        mesh.position.y += Math.sin(t * 0.6 + obj.index * 0.2) * 1.2;
-        const crystalPulse = 1 + Math.sin(t * 3 + obj.index) * 0.1;
-        mesh.children[0].scale.set(
+      mesh.rotation.x += speed * 1.3;
+      mesh.rotation.y += speed * 1.8;
+      mesh.rotation.z += speed * 0.9;
+      mesh.position.y += Math.sin(t * 0.6 + obj.index * 0.2) * 1.2;
+      const crystalPulse = 1 + Math.sin(t * 3 + obj.index) * 0.1;
+      mesh.children[0].scale.set(crystalPulse, crystalPulse, crystalPulse);
+      mesh.children[0].material.opacity = 0.6 + Math.sin(t * 2 + obj.index) * 0.2;
+      if (mesh.children[1]) {
+        mesh.children[1].material.opacity = 0.8 + Math.sin(t * 4 + obj.index) * 0.2;
+      }
+      break;
