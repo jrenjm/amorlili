@@ -1,6 +1,92 @@
-// Log para confirmar que el script se carga
-console.log("Script loaded");
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>TE AMO LILIANA <3</title>
+<!-- Etiquetas para vista previa al compartir -->
+<meta property="og:title" content="TE AMO LILIANA ❤️">
+<meta property="og:description" content="Una galaxia de amor solo para ti 💫">
+<meta property="og:image" content="https://jrenjm.github.io/amorlili/f0.jpg">
+<meta property="og:url" content="https://jrenjm.github.io/amorlili/">
+<meta property="og:type" content="website">
+<style>
+body,html{margin:0;height:100%;background:#000;overflow:hidden}
+canvas{display:block}
+.player{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  width:90%;
+  max-width:600px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border:2px solid #f60;
+  border-radius:999px;
+  background:0 0;
+  box-shadow:0 0 15px #f60,0 0 30px #f30;
+  z-index:1000;
+  font-family:Arial,sans-serif;
+  color:#fff;
+  font-size:14px
+}
+.player button{
+  background:0 0;
+  border:none;
+  color:#fff;
+  font-size:22px;
+  cursor:pointer;
+  filter:drop-shadow(0 0 6px #ff6600);
+  transition:transform .2s
+}
+.player button:hover{
+  transform:scale(1.2);
+  filter:drop-shadow(0 0 10px #ff3300)
+}
+.progress{
+  flex-grow:1;
+  height:14px;
+  background:rgba(255,255,255,.12);
+  border-radius:999px;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative
+}
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(270deg,#f60,#f30,#f09,#f60);
+  background-size:400% 400%;
+  border-radius:999px;
+  box-shadow:0 0 10px #f60;
+  animation:flowing 6s ease infinite
+}
+@keyframes flowing{
+  0%{background-position:0 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0 50%}
+}
+.time{min-width:74px;text-align:right;font-size:12px;color:#fff;text-shadow:0 0 5px #f60}
+</style>
+</head>
+<body>
+<canvas id=c></canvas>
 
+<div class="player">
+  <button id="prev">⏮️</button>
+  <button id="play">▶️</button>
+  <button id="next">⏭️</button>
+  <div id="song-name" style="font-size:13px;white-space:nowrap;text-shadow:0 0 8px #ff6600;">Only - LILIANA</div>
+  <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="time" id="time">0:00 / 0:00</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"></script>
+
+<script>
 // === Reproductor con control de canciones ===
 const audio = document.getElementById("audio"),
   playBtn = document.getElementById("play"),
@@ -14,17 +100,19 @@ const audio = document.getElementById("audio"),
 let isPlaying = false;
 let currentSong = 0;
 
-// 🎵 Lista de canciones
+// 🎵 Lista de canciones (ubicadas en la carpeta playlist/)
 const songs = [
-  { name: "Only", src: "./playlist/Only.mp3" },
-  { name: "LIVE FOREVER(Español)-OASIS", src: "./playlist/LIVE FOREVER(Español)-OASIS.mp3" },
-  { name: "Be The One (spanish version)", src: "./playlist/Be The One (spanish version).mp3" },
-  { name: "Tattoo(Cover Español)", src: "./playlist/Tattoo(Cover Español).mp3" },
-  { name: "Baile Inolvidable", src: "./playlist/Baile Inolvidable.mp3" },
-  { name: "Enseñame a Bailar", src: "./playlist/Enseñame a Bailar.mp3" },
-  { name: "ODESZA-A Moment Apart", src: "./playlist/ODESZA-A Moment Apart.mp3" },
+  { name: "Only", src: "playlist/Only.mp3" },
+  { name: "LIVE FOREVER(Español)-OASIS", src: "playlist/LIVE FOREVER(Español)-OASIS.mp3" },
+  {name: "Be The One (spanish version)",src:"playlist/Be The One (spanish version).mp3"},
+  {name:"Tattoo(Cover Español)",src:"playlist/Tattoo(Cover Español).mp3"},
+  {name:"Baile Inolvidable",src:"playlist/Baile Inolvidable.mp3"},
+  {name:"Enseñame a Bailar",src:"playlist/Enseñame a Bailar.mp3"},
+  // 👇 puedes agregar más canciones así:
+  // { name: "Nombre de la canción", src: "playlist/NOMBREDELARCHIVO.mp3" },
 ];
 
+// Carga la canción actual
 function loadSong(index) {
   const song = songs[index];
   audio.src = song.src;
@@ -33,6 +121,7 @@ function loadSong(index) {
   timeDisplay.textContent = "0:00 / 0:00";
 }
 
+// Convierte segundos a formato mm:ss
 function formatTime(seconds) {
   if (!isFinite(seconds)) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -40,747 +129,220 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
+// Play / Pause
 playBtn.addEventListener("click", async () => {
   if (isPlaying) {
     audio.pause();
     playBtn.textContent = "▶️";
   } else {
-    try {
-      await audio.play();
-      playBtn.textContent = "⏸️";
-    } catch (error) {
-      console.error("Error playing audio:", error);
-    }
+    await audio.play();
+    playBtn.textContent = "⏸️";
   }
   isPlaying = !isPlaying;
 });
 
+// Actualiza barra de progreso y tiempo
 audio.addEventListener("timeupdate", () => {
   const progressPercent = (audio.currentTime / audio.duration) * 100;
   progressBar.style.width = (isFinite(progressPercent) ? progressPercent : 0) + "%";
   timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
 });
 
+// Saltar a parte del audio
 progress.addEventListener("click", e => {
   const rect = progress.getBoundingClientRect();
   const percent = (e.clientX - rect.left) / rect.width;
   if (isFinite(audio.duration)) audio.currentTime = percent * audio.duration;
 });
 
+// Botón siguiente
 nextBtn.addEventListener("click", () => {
   currentSong = (currentSong + 1) % songs.length;
   loadSong(currentSong);
   if (isPlaying) audio.play();
 });
 
+// Botón anterior
 prevBtn.addEventListener("click", () => {
   currentSong = (currentSong - 1 + songs.length) % songs.length;
   loadSong(currentSong);
   if (isPlaying) audio.play();
 });
 
+// Reproducir automáticamente la siguiente canción al terminar
 audio.addEventListener("ended", () => {
   nextBtn.click();
 });
 
+// Carga inicial
 loadSong(currentSong);
 
-// === Escena THREE.JS MEJORADA ===
-const canvas = document.getElementById("c"),
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setSize(innerWidth, innerHeight);
+// === Escena ===
+const canvas=document.getElementById("c"),
+renderer=new THREE.WebGLRenderer({canvas,antialias:!0});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight);
+const scene=new THREE.Scene(),
+camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,5000);
+let targetDist=300,currentDist=300,rotX=.2,rotY=0;
 
-const scene = new THREE.Scene(),
-  camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
+// === Fondo espacial ===
+const loader=new THREE.TextureLoader;
+const nebulaTex = loader.load("https://jrenjm.github.io/amorlili/space.jpg");
+scene.background=nebulaTex;
 
-// 🎮 Control de cámara con movimiento libre
-let cameraPos = { x: 0, y: 0, z: 2000 };
-let cameraVelocity = { x: 0, y: 0, z: 0 };
-let cameraRotation = { yaw: Math.PI, pitch: 0 };
-
-// === ILUMINACIÓN MEJORADA ===
-function setupEnhancedLighting() {
-  // Luz ambiental suave
-  const ambient = new THREE.AmbientLight(0xffffff, 0.2);
-  scene.add(ambient);
-
-  // Luz direccional principal (como luz solar)
-  const sunLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
-  sunLight.position.set(1000, 500, 1000);
-  scene.add(sunLight);
-
-  // Luces de acento para planetas
-  const planetLights = [
-    { color: 0xFF4444, intensity: 0.5, position: [1200, -800, 800] },
-    { color: 0x4444FF, intensity: 0.4, position: [-1500, 600, -900] },
-    { color: 0x44FF44, intensity: 0.3, position: [800, 900, -1400] }
-  ];
-
-  planetLights.forEach(lightData => {
-    const light = new THREE.PointLight(lightData.color, lightData.intensity, 1000);
-    light.position.set(...lightData.position);
-    scene.add(light);
-  });
-
-  // Nebulosa glow
-  const nebulaGlow = new THREE.PointLight(0x8A2BE2, 0.6, 2000);
-  nebulaGlow.position.set(-1500, 500, -1000);
-  scene.add(nebulaGlow);
-}
-
-setupEnhancedLighting();
-
-// === FONDO ESPACIAL MEJORADO ===
-const loader = new THREE.TextureLoader();
-loader.load(
-  "https://jrenjm.github.io/amorlili/space.jpg",
-  texture => { scene.background = texture; },
-  undefined,
-  error => {
-    console.error("Error loading background:", error);
-    scene.background = new THREE.Color(0x000011); // Azul oscuro como fallback
+// === Estrellas ===
+(function(e=2000,t=3000){
+  const n=new THREE.BufferGeometry,a=new Float32Array(3*e);
+  for(let n=0;n<e;n++){
+    const e=t*(.3+.7*Math.random()),r=Math.random()*Math.PI*2,i=Math.acos(2*Math.random()-1);
+    a[3*n+0]=e*Math.sin(i)*Math.cos(r),
+    a[3*n+1]=e*Math.cos(i),
+    a[3*n+2]=e*Math.sin(i)*Math.sin(r)
   }
-);
+  n.setAttribute("position",new THREE.BufferAttribute(a,3));
+  scene.add(new THREE.Points(n,new THREE.PointsMaterial({size:1.5,color:0xffffff,depthWrite:!1})))
+})();
 
-// === ESTRELLAS REALISTAS ===
-function createRealisticStars() {
-  const starCount = 12000;
-  const starGeometry = new THREE.BufferGeometry();
-  
-  const positions = new Float32Array(starCount * 3);
-  const colors = new Float32Array(starCount * 3);
-  const sizes = new Float32Array(starCount);
-  
-  for (let i = 0; i < starCount; i++) {
-    // Distribución más realista (más estrellas cerca del plano galáctico)
-    const spiralArm = Math.floor(Math.random() * 4);
-    const angle = (spiralArm * Math.PI / 2) + (Math.random() - 0.5) * 0.5;
-    const distance = 1500 + Math.random() * 8000;
-    const height = (Math.random() - 0.5) * 400;
-    
-    positions[i * 3] = Math.cos(angle) * distance;
-    positions[i * 3 + 1] = height;
-    positions[i * 3 + 2] = Math.sin(angle) * distance;
-    
-    // Colores estelares realistas
-    const starType = Math.random();
-    let r, g, b;
-    if (starType < 0.7) { // Estrellas amarillas/blancas
-      r = 1; g = 0.9; b = 0.8;
-    } else if (starType < 0.85) { // Estrellas azules
-      r = 0.7; g = 0.8; b = 1;
-    } else if (starType < 0.95) { // Estrellas naranjas
-      r = 1; g = 0.7; b = 0.4;
-    } else { // Estrellas rojas
-      r = 1; g = 0.5; b = 0.4;
-    }
-    
-    colors[i * 3] = r;
-    colors[i * 3 + 1] = g;
-    colors[i * 3 + 2] = b;
-    
-    // Tamaños variados
-    sizes[i] = 0.3 + Math.random() * 2.5;
-  }
-  
-  starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-  
-  const starMaterial = new THREE.PointsMaterial({
-    size: 1.8,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.9,
-    sizeAttenuation: true
-  });
-  
-  const stars = new THREE.Points(starGeometry, starMaterial);
-  scene.add(stars);
-  return stars;
+
+
+// === Grupo principal (corazón + texto) ===
+const loveGroup = new THREE.Group();
+scene.add(loveGroup);
+
+// === Corazón 3D centrado ===
+const heartShape = new THREE.Shape();
+heartShape.moveTo(0, 0);
+heartShape.bezierCurveTo(0, 3, -3, 3, -3, 0);
+heartShape.bezierCurveTo(-3, -3, 0, -3.5, 0, -6);
+heartShape.bezierCurveTo(0, -3.5, 3, -3, 3, 0);
+heartShape.bezierCurveTo(3, 3, 0, 3, 0, 0);
+
+const extrudeSettings = {
+  depth: 2,
+  bevelEnabled: true,
+  bevelSegments: 3,
+  steps: 2,
+  bevelSize: 0.4,
+  bevelThickness: 0.4
+};
+
+const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+heartGeometry.center();
+
+const heartMaterial = new THREE.MeshPhongMaterial({
+  color: 0xff3366,
+  shininess: 300,
+  emissive: 0xaa0022,
+  specular: 0xffffff,
+  transparent: true,
+  opacity: 1
+});
+
+const heartMesh = new THREE.Mesh(heartGeometry, heartMaterial);
+heartMesh.scale.set(6, 6, 6);
+loveGroup.add(heartMesh);
+
+// === Texto central ===
+function makeCenterTextTexture(e){
+  const t = document.createElement("canvas");
+  t.width = 4096;   // 🔹 ancho grande para evitar recortes
+  t.height = 1024;  // 🔹 alto para buena resolución
+  const n = t.getContext("2d");
+  n.clearRect(0, 0, t.width, t.height);
+  n.font = "bold 500px Arial";  // 🔹 texto grande
+  n.textAlign = "center";
+  n.textBaseline = "middle";
+  n.fillStyle = "#ff0033";
+  n.shadowColor = "#ff66aa";
+  n.shadowBlur = 60;
+  n.fillText(e, t.width / 2, t.height / 2);
+  return new THREE.CanvasTexture(t);
 }
 
-createRealisticStars();
+const centerTex = makeCenterTextTexture("TE AMO LILIANA "),
+centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false }),
+centerSprite = new THREE.Sprite(centerMat);
+centerSprite.scale.set(90, 40, 1);   // 🔹 tamaño visible
+centerSprite.position.set(0, 40, 0); // 🔹 encima del corazón
+loveGroup.add(centerSprite);
 
-// === NEBULOSAS MEJORADAS ===
-function createNebulae() {
-  // Nebulosa principal
-  const nebulaGeometry = new THREE.SphereGeometry(600, 32, 32);
-  const nebulaMaterial = new THREE.MeshBasicMaterial({
-    color: 0x8A2BE2,
-    transparent: true,
-    opacity: 0.15,
-    side: THREE.DoubleSide
-  });
-  
-  const nebula = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
-  nebula.position.set(-1500, 500, -1000);
-  scene.add(nebula);
+// === Luz y anillos ===
+scene.add(new THREE.PointLight(0xff8888,1,500));
+const ring1=new THREE.Mesh(new THREE.RingGeometry(60,80,128),new THREE.MeshBasicMaterial({color:0xffaa88,transparent:!0,opacity:0.5,side:THREE.DoubleSide}));
+const ring2=new THREE.Mesh(new THREE.RingGeometry(85,100,128),new THREE.MeshBasicMaterial({color:0xff8866,transparent:!0,opacity:0.3,side:THREE.DoubleSide}));
+ring1.rotation.x=ring2.rotation.x=Math.PI/2;
+scene.add(ring1);
+scene.add(ring2);
 
-  // Nebulosa secundaria
-  const nebula2Geometry = new THREE.SphereGeometry(400, 24, 24);
-  const nebula2Material = new THREE.MeshBasicMaterial({
-    color: 0x00BFFF,
-    transparent: true,
-    opacity: 0.1,
-    side: THREE.DoubleSide
-  });
-  
-  const nebula2 = new THREE.Mesh(nebula2Geometry, nebula2Material);
-  nebula2.position.set(1200, -300, 1500);
-  scene.add(nebula2);
-
-  return [nebula, nebula2];
-}
-
-const nebulae = createNebulae();
-
-// 🌌 PALABRAS BONITAS (más de 200 por galaxia)
-const ALL_WORDS = [
-  "💖 Mi amor", "🌞 Mi sol", "🌎 Mi mundo", "✨ Brillas", "❤️ Te amo", "🌌 Universo",
-  "👑 Mi reina", "🌠 Estrella", "💫 Mi cielo", "🔥 Siempre tú", "🎶 Tu risa", "🦋 Libertad",
-  "💎 Eres todo", "🙏 Gracias", "💕 Cariño", "🌹 Amor eterno", "🤗 Abrazos", "🌸 Esperanza",
-  "🌈 Alegría", "🌟 Contigo", "🧸 Ternura", "🎁 Mi razón", "🌙 Mi destino", "💌 Recuerdos",
-  "🕊️ Mi paz", "🪐 Mi universo", "🌊 Mi calma", "💡 Mi luz", "🍒 Dulzura", "🥰 Mi vida",
-  "🎇 Felicidad", "🌻 Alegría", "🌺 Mi flor", "💜 Eternidad", "🌟 Sueños", "✨ Magia",
-  "🎵 Canción", "🔥 Pasión", "⭐ Mi estrella", "🌴 Mi paraíso", "🌄 Amanecer", "🌃 Noche contigo",
-  "🎉 Mi fiesta", "💫 Inspiración", "🎀 Mi ternura", "🍀 Mi fortuna", "🪞 Mi princesa",
-  "🌷 Hermosa", "💝 Regalo", "🎊 Celebración", "🦄 Única", "🌼 Primavera", "🎭 Mi arte",
-  "🍓 Dulce amor", "🎸 Mi melodía", "🌿 Naturaleza", "🔮 Magia pura", "🎪 Mi circo", "🏰 Mi castillo",
-  "🌅 Resplandor", "🪄 Hechizo", "🎻 Sinfonía", "🌑 Mi luna", "☄️ Cometa", "🌪️ Torbellino",
-  "🏔️ Mi cima", "🗻 Mi monte", "🏖️ Mi playa", "🎨 Mi color", "📿 Conexión", "🧿 Protección",
-  "💒 Templo", "🕌 Sagrado", "⛪ Bendición", "🎆 Fuegos", "🎑 Contemplar", "🗼 Torre",
-  "🗽 Libertad", "🗿 Eterno", "⚡ Energía", "🌪️ Fuerza", "❄️ Pureza", "☀️ Calidez",
-  "🌺 Preciosa", "💗 Adorable", "🎀 Delicada", "🌸 Radiante", "✨ Divina", "💝 Tesoro",
-  "🦋 Mariposa", "🌹 Belleza", "💖 Corazón", "🌟 Resplandor", "🎵 Melodía", "🌈 Arcoíris",
-  "🍀 Suerte", "💫 Destello", "🌻 Girasol", "🎶 Armonía", "💕 Adoración", "🌙 Lunita",
-  "⭐ Brillante", "🎨 Obra", "🌊 Ola", "🔥 Llama", "💎 Joya", "🌄 Aurora",
-  "🎭 Musa", "🌺 Florecer", "💜 Violeta", "🌸 Sakura", "✨ Lucero", "🎀 Lazo",
-  "🦄 Fantasía", "🌹 Rosa", "💗 Ternura", "🌟 Fulgor", "🎵 Nota", "🌈 Color",
-  "🍀 Trébol", "💫 Chispa", "🌻 Sol", "🎶 Ritmo", "💕 Afecto", "🌙 Nocturna",
-  "⭐ Astro", "🎨 Lienzo", "🌊 Mar", "🔥 Ardor", "💎 Diamante", "🌄 Alba",
-  "🎭 Escena", "🌺 Jardín", "💜 Amatista", "🌸 Pétalo", "✨ Brillo", "🎀 Moño",
-  "🦋 Vuelo", "🌹 Roja", "💗 Latido", "🌟 Centelleo", "🎵 Eco", "🌈 Prisma",
-  "🍀 Verdor", "💫 Fulgor", "🌻 Campo", "🎶 Verso", "💕 Querer", "🌙 Eclipse",
-  "⭐ Constelación", "🎨 Pincel", "🌊 Marea", "🔥 Fogata", "💎 Cristal", "🌄 Horizonte"
+// === Palabras flotantes ===
+const WORDS=[],baseWords=[
+"💖 Mi amor","🌞 Mi sol","🌎 Mi mundo","✨ Brillas","❤️ Te amo","🌌 Universo","👑 Reina","🌠 Estrella","💫 Mi cielo","🔥 Siempre tú","🎶 Tu risa","🦋 Libertad",
+"💎 Eres todo","🙏 Gracias","💕 Cariño","🌹 Amor eterno","🤗 Abrazos","🌸 Esperanza","🌈 Alegría","🌟 Contigo","🧸 Ternura","🎁 Mi razón","🌙 Mi destino",
+"💌 Recuerdos","🕊️ Mi paz","🪐 Mi universo","🌊 Mi calma","💡 Mi luz","🍒 Dulzura","🥰 Mi vida","🎇 Felicidad","🌻 Alegría","🌺 Mi flor","💜 Eternidad",
+"🌟 Sueños","✨ Magia","🎵 Canción","🔥 Pasión","⭐ Mi estrella","🌴 Mi paraíso","🌄 Amanecer","🌃 Noche contigo","🎉 Mi fiesta","💫 Inspiración",
+"🎀 Mi ternura","🍀 Mi fortuna","🪞 Mi princesa"
 ];
-
-// 🌌 CONFIGURACIÓN DE GALAXIAS (solo 3)
-const galaxies = [];
-const totalPhotos = 100;
-const photosPerGalaxy = 33;
-
-// Mezclar fotos aleatoriamente
-const shuffledPhotos = [];
-for (let i = 1; i <= totalPhotos; i++) shuffledPhotos.push(i);
-for (let i = shuffledPhotos.length - 1; i > 0; i--) {
-  const j = Math.floor(Math.random() * (i + 1));
-  [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
+for(let e=0;e<6;e++)WORDS.push(...baseWords);
+function makeTextTexture(e,t){
+  const n=document.createElement("canvas");
+  n.width=512;n.height=128;
+  const a=n.getContext("2d");
+  a.clearRect(0,0,n.width,n.height);
+  a.font="bold 60px Arial";
+  a.textAlign="center";
+  a.textBaseline="middle";
+  a.fillStyle="#fff";
+  a.shadowColor=t;
+  a.shadowBlur=30;
+  a.fillText(e,n.width/2,n.height/2);
+  return new THREE.CanvasTexture(n);
+}
+const COLORS=["#ff66ff","#66ccff","#ffd36b","#ff9966","#8df59a","#ffa0f8","#c6a7ff","#ff4444","#44ff99","#99ccff"],
+textGroup=new THREE.Group;
+scene.add(textGroup);
+for(let e=0;e<WORDS.length;e++){
+  const t=makeTextTexture(WORDS[e],COLORS[e%COLORS.length]),
+  n=new THREE.SpriteMaterial({map:t,transparent:!0}),
+  a=new THREE.Sprite(n);
+  a.scale.set(50,16,1);
+  const r=Math.acos(2*Math.random()-1),
+  i=Math.random()*Math.PI*2,
+  o=150+120*Math.random();
+  a.position.set(o*Math.sin(r)*Math.cos(i),o*Math.cos(r),o*Math.sin(r)*Math.sin(i));
+  a.userData={phi:r,theta:i,radius:o,speed:.001+.001*Math.random()};
+  textGroup.add(a);
 }
 
-// Posiciones de las galaxias con textos únicos (solo 3)
-const galaxyPositions = [
-  { x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA" },
-  { x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO" },
-  { x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA" }
-];
-
-// === Función para crear una galaxia MEJORADA ===
-function createGalaxy(position, colorHex, galaxyIndex, textContent) {
-  const galaxyGroup = new THREE.Group();
-  galaxyGroup.position.set(position.x, position.y, position.z);
-
-  // === Corazón 3D MEJORADO ===
-  const heartShape = new THREE.Shape();
-  heartShape.moveTo(0, 0);
-  heartShape.bezierCurveTo(0, 3, -3, 3, -3, 0);
-  heartShape.bezierCurveTo(-3, -3, 0, -3.5, 0, -6);
-  heartShape.bezierCurveTo(0, -3.5, 3, -3, 3, 0);
-  heartShape.bezierCurveTo(3, 3, 0, 3, 0, 0);
-
-  const extrudeSettings = {
-    depth: 2,
-    bevelEnabled: true,
-    bevelSegments: 5,
-    steps: 3,
-    bevelSize: 0.5,
-    bevelThickness: 0.5
-  };
-
-  const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
-  heartGeometry.center();
-
-  const heartMaterial = new THREE.MeshPhongMaterial({
-    color: colorHex,
-    shininess: 400,
-    emissive: colorHex,
-    emissiveIntensity: 0.4,
-    specular: 0xffffff,
-    transparent: true,
-    opacity: 0.95
-  });
-
-  const heartMesh = new THREE.Mesh(heartGeometry, heartMaterial);
-  heartMesh.scale.set(10, 10, 10);
-  galaxyGroup.add(heartMesh);
-
-  // Glow alrededor del corazón
-  const heartGlowGeometry = new THREE.SphereGeometry(12, 16, 16);
-  const heartGlowMaterial = new THREE.MeshBasicMaterial({
-    color: colorHex,
-    transparent: true,
-    opacity: 0.2,
-    side: THREE.DoubleSide
-  });
-  const heartGlow = new THREE.Mesh(heartGlowGeometry, heartGlowMaterial);
-  galaxyGroup.add(heartGlow);
-
-  // === Texto central MEJORADO ===
-  function makeTextTexture(text) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 2048;
-    canvas.height = 512;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "bold 180px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
-    ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  const centerTex = makeTextTexture(textContent);
-  const centerMat = new THREE.SpriteMaterial({ 
-    map: centerTex, 
-    transparent: true, 
-    depthTest: false,
-    opacity: 0.9
-  });
-  const centerSprite = new THREE.Sprite(centerMat);
-  centerSprite.scale.set(150, 40, 1);
-  centerSprite.position.set(0, 60, 0);
-  galaxyGroup.add(centerSprite);
-
-  // === Luz MEJORADA ===
-  const light = new THREE.PointLight(colorHex, 2, 1000);
-  light.position.set(0, 0, 0);
-  galaxyGroup.add(light);
-
-  // === Anillos giratorios con efecto 3D MEJORADOS ===
-  const rings = [];
-  for (let i = 0; i < 3; i++) {
-    const ringSize = 80 + i * 30;
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(ringSize, ringSize + 20, 64),
-      new THREE.MeshBasicMaterial({ 
-        color: colorHex, 
-        transparent: true, 
-        opacity: 0.4 - i * 0.1, 
-        side: THREE.DoubleSide 
-      })
-    );
-    ring.rotation.x = Math.PI / 2;
-    ring.userData = { speed: 0.002 + i * 0.001, pulse: 0 };
-    rings.push(ring);
-    galaxyGroup.add(ring);
-  }
-
-  // === Palabras flotantes MEJORADAS ===
-  function makeWordTexture(text, color) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 128;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "bold 50px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 25;
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
-  const textGroup = new THREE.Group();
-
-  for (let i = 0; i < 200; i++) {
-    const word = ALL_WORDS[i % ALL_WORDS.length];
-    const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
-    const material = new THREE.SpriteMaterial({ 
-      map: texture, 
-      transparent: true,
-      opacity: 0.8
-    });
-    const sprite = new THREE.Sprite(material);
-    sprite.scale.set(50, 16, 1);
-    
-    // Distribución más realista en forma de esfera
-    const phi = Math.acos(2 * Math.random() - 1);
-    const theta = Math.random() * Math.PI * 2;
-    const radius = 180 + 170 * Math.random();
-    
+// === Fotos flotantes ===
+const imageGroup=new THREE.Group();
+scene.add(imageGroup);
+const imgLoader=new THREE.TextureLoader();
+for(let i=1;i<=100;i++){
+  const path=`https://jrenjm.github.io/amorlili/recuerdos/f${i}.jpg`;
+  const img=new Image();
+  img.onload=()=>{
+    const texture=imgLoader.load(path);
+    const mat=new THREE.SpriteMaterial({map:texture,transparent:true});
+    const sprite=new THREE.Sprite(mat);
+    sprite.scale.set(40,40,1);
+    const phi=Math.acos(2*Math.random()-1),
+          theta=Math.random()*Math.PI*2,
+          radius=180+120*Math.random();
     sprite.position.set(
-      radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta)
+      radius*Math.sin(phi)*Math.cos(theta),
+      radius*Math.cos(phi),
+      radius*Math.sin(phi)*Math.sin(theta)
     );
-    
-    sprite.userData = { 
-      phi, 
-      theta, 
-      radius, 
-      speed: 0.0005 + 0.001 * Math.random(),
-      originalRadius: radius,
-      pulseSpeed: 0.02 + Math.random() * 0.03
-    };
-    textGroup.add(sprite);
-  }
-  galaxyGroup.add(textGroup);
-
-  // === Fotos flotantes MEJORADAS ===
-  const imageGroup = new THREE.Group();
-  const startIndex = galaxyIndex * photosPerGalaxy;
-  const endIndex = Math.min(startIndex + photosPerGalaxy, totalPhotos);
-  const galaxyPhotos = shuffledPhotos.slice(startIndex, endIndex);
-
-  const imgLoader = new THREE.TextureLoader();
-  galaxyPhotos.forEach(photoNum => {
-    const path = `https://jrenjm.github.io/amorlili/recuerdos/f${photoNum}.jpg`;
-    imgLoader.load(
-      path,
-      texture => {
-        const mat = new THREE.SpriteMaterial({ 
-          map: texture, 
-          transparent: true,
-          opacity: 0.9
-        });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(45, 45, 1);
-        
-        const phi = Math.acos(2 * Math.random() - 1);
-        const theta = Math.random() * Math.PI * 2;
-        const radius = 200 + 150 * Math.random();
-        
-        sprite.position.set(
-          radius * Math.sin(phi) * Math.cos(theta),
-          radius * Math.cos(phi),
-          radius * Math.sin(phi) * Math.sin(theta)
-        );
-        
-        sprite.userData = { 
-          phi, 
-          theta, 
-          radius, 
-          speed: 0.0004 + 0.0008 * Math.random(),
-          originalRadius: radius,
-          pulseSpeed: 0.015 + Math.random() * 0.025
-        };
-        imageGroup.add(sprite);
-      },
-      undefined,
-      error => console.error(`Error loading image f${photoNum}.jpg:`, error)
-    );
-  });
-  galaxyGroup.add(imageGroup);
-
-  scene.add(galaxyGroup);
-
-  return {
-    group: galaxyGroup,
-    heart: heartMesh,
-    heartGlow: heartGlow,
-    text: centerSprite,
-    rings: rings,
-    textGroup: textGroup,
-    imageGroup: imageGroup,
-    light: light
+    sprite.userData={phi,theta,radius,speed:0.001+0.001*Math.random()};
+    imageGroup.add(sprite);
   };
+  img.src=path;
 }
-
-// Crear todas las galaxias
-for (let i = 0; i < galaxyPositions.length; i++) {
-  const pos = galaxyPositions[i];
-  const galaxy = createGalaxy(pos, pos.color, i, pos.name);
-  galaxies.push(galaxy);
-}
-
-// 🪐 SISTEMA SOLAR MEJORADO
-const celestialObjects = [];
-
-// Planeta 1: Saturno con anillos realistas
-const saturn = new THREE.Group();
-saturn.position.set(1200, -800, 800);
-const saturnGeometry = new THREE.SphereGeometry(45, 32, 32);
-const saturnMaterial = new THREE.MeshPhongMaterial({
-  color: 0xff88cc,
-  emissive: 0xff44aa,
-  emissiveIntensity: 0.3,
-  shininess: 120,
-  specular: 0xffaaff
-});
-const saturnMesh = new THREE.Mesh(saturnGeometry, saturnMaterial);
-saturn.add(saturnMesh);
-
-// Anillos de Saturno mejorados
-const saturnRing = new THREE.Mesh(
-  new THREE.RingGeometry(65, 85, 64),
-  new THREE.MeshPhongMaterial({
-    color: 0xffaaee,
-    transparent: true,
-    opacity: 0.7,
-    side: THREE.DoubleSide,
-    shininess: 100
-  })
-);
-saturnRing.rotation.x = Math.PI / 2.3;
-saturn.add(saturnRing);
-
-// Anillo interior
-const saturnInnerRing = new THREE.Mesh(
-  new THREE.RingGeometry(55, 65, 48),
-  new THREE.MeshPhongMaterial({
-    color: 0xdd99cc,
-    transparent: true,
-    opacity: 0.5,
-    side: THREE.DoubleSide
-  })
-);
-saturnInnerRing.rotation.x = Math.PI / 2.4;
-saturn.add(saturnInnerRing);
-
-scene.add(saturn);
-celestialObjects.push({ 
-  mesh: saturn, 
-  type: 'saturn', 
-  speed: 0.001,
-  orbitRadius: 1200,
-  orbitSpeed: 0.0002
-});
-
-// Planeta 2: Júpiter con detalles
-const jupiter = new THREE.Group();
-jupiter.position.set(-1500, 600, -900);
-const jupiterGeometry = new THREE.SphereGeometry(70, 36, 36);
-const jupiterMaterial = new THREE.MeshPhongMaterial({
-  color: 0x4488ff,
-  emissive: 0x2244aa,
-  emissiveIntensity: 0.4,
-  shininess: 90,
-  specular: 0x6688ff
-});
-const jupiterMesh = new THREE.Mesh(jupiterGeometry, jupiterMaterial);
-jupiter.add(jupiterMesh);
-
-// Bandas de Júpiter (simuladas con esferas adicionales)
-const jupiterBand1 = new THREE.Mesh(
-  new THREE.TorusGeometry(72, 3, 16, 48),
-  new THREE.MeshBasicMaterial({ color: 0xaa5533 })
-);
-jupiterBand1.rotation.x = Math.PI / 2;
-jupiter.add(jupiterBand1);
-
-const jupiterBand2 = new THREE.Mesh(
-  new THREE.TorusGeometry(72, 2, 16, 48),
-  new THREE.MeshBasicMaterial({ color: 0x884422 })
-);
-jupiterBand2.rotation.x = Math.PI / 2;
-jupiterBand2.rotation.z = Math.PI / 3;
-jupiter.add(jupiterBand2);
-
-scene.add(jupiter);
-celestialObjects.push({ 
-  mesh: jupiter, 
-  type: 'jupiter', 
-  speed: 0.0008,
-  orbitRadius: 1500,
-  orbitSpeed: 0.00015
-});
-
-// Planeta 3: Urano con anillo vertical
-const uranus = new THREE.Group();
-uranus.position.set(800, 900, -1400);
-const uranusGeometry = new THREE.SphereGeometry(35, 28, 28);
-const uranusMaterial = new THREE.MeshPhongMaterial({
-  color: 0x66ffcc,
-  emissive: 0x33aa88,
-  emissiveIntensity: 0.35,
-  shininess: 140,
-  specular: 0x88ffdd
-});
-const uranusMesh = new THREE.Mesh(uranusGeometry, uranusMaterial);
-uranus.add(uranusMesh);
-
-const uranusRing = new THREE.Mesh(
-  new THREE.RingGeometry(50, 60, 48),
-  new THREE.MeshPhongMaterial({
-    color: 0x88ffdd,
-    transparent: true,
-    opacity: 0.6,
-    side: THREE.DoubleSide,
-    shininess: 120
-  })
-);
-uranusRing.rotation.y = Math.PI / 2.1;
-uranus.add(uranusRing);
-
-scene.add(uranus);
-celestialObjects.push({ 
-  mesh: uranus, 
-  type: 'uranus', 
-  speed: 0.0012,
-  orbitRadius: 1400,
-  orbitSpeed: 0.00018
-});
-
-// Planeta 4: Luna con cráteres simulados
-const moon = new THREE.Group();
-moon.position.set(-800, -600, 1200);
-const moonGeometry = new THREE.SphereGeometry(25, 24, 24);
-const moonMaterial = new THREE.MeshPhongMaterial({
-  color: 0xffffcc,
-  emissive: 0xffff88,
-  emissiveIntensity: 0.5,
-  shininess: 160,
-  specular: 0xffffff
-});
-const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
-moon.add(moonMesh);
-
-const moonLight = new THREE.PointLight(0xffff88, 1, 400);
-moon.add(moonLight);
-
-// Cráteres simulados
-for (let i = 0; i < 8; i++) {
-  const crater = new THREE.Mesh(
-    new THREE.CircleGeometry(3 + Math.random() * 4, 8),
-    new THREE.MeshBasicMaterial({ 
-      color: 0x888888,
-      side: THREE.DoubleSide
-    })
-  );
-  const phi = Math.acos(2 * Math.random() - 1);
-  const theta = Math.random() * Math.PI * 2;
-  crater.position.set(
-    26 * Math.sin(phi) * Math.cos(theta),
-    26 * Math.cos(phi),
-    26 * Math.sin(phi) * Math.sin(theta)
-  );
-  crater.lookAt(0, 0, 0);
-  moon.add(crater);
-}
-
-scene.add(moon);
-celestialObjects.push({ 
-  mesh: moon, 
-  type: 'moon', 
-  speed: 0.002,
-  orbitRadius: 800,
-  orbitSpeed: 0.0003
-});
-
-// Planeta 5: Marte con superficie rocosa
-const mars = new THREE.Group();
-mars.position.set(1600, 200, 1100);
-const marsGeometry = new THREE.SphereGeometry(30, 24, 24);
-const marsMaterial = new THREE.MeshPhongMaterial({
-  color: 0xff6633,
-  emissive: 0xaa3311,
-  emissiveIntensity: 0.25,
-  shininess: 70,
-  specular: 0xff8866
-});
-const marsMesh = new THREE.Mesh(marsGeometry, marsMaterial);
-mars.add(marsMesh);
-
-scene.add(mars);
-celestialObjects.push({ 
-  mesh: mars, 
-  type: 'mars', 
-  speed: 0.0015,
-  orbitRadius: 1600,
-  orbitSpeed: 0.00025
-});
-
-// === CONSTELACIONES REALISTAS ===
-function createRealisticConstellations() {
-  const constellations = [
-    {
-      name: "ORION",
-      stars: [
-        { x: -800, y: 400, z: 600, size: 6, brightness: 0.9 },
-        { x: -600, y: 450, z: 500, size: 5, brightness: 0.7 },
-        { x: -400, y: 320, z: 650, size: 7, brightness: 1.0 },
-        { x: -650, y: 520, z: 450, size: 4, brightness: 0.6 },
-        { x: -680, y: 500, z: 430, size: 4, brightness: 0.6 },
-        { x: -710, y: 480, z: 410, size: 4, brightness: 0.6 }
-      ],
-      lines: [[0,1], [1,2], [3,4], [4,5], [3,5]]
-    }
-  ];
-
-  constellations.forEach(constellation => {
-    const constellationGroup = new THREE.Group();
-    
-    // Crear estrellas
-    constellation.stars.forEach((starData, index) => {
-      const starGeometry = new THREE.SphereGeometry(starData.size, 12, 12);
-      const starMaterial = new THREE.MeshBasicMaterial({
-        color: 0xFFFFFF,
-        emissive: 0xFFFFCC,
-        emissiveIntensity: starData.brightness * 0.4
-      });
-      const star = new THREE.Mesh(starGeometry, starMaterial);
-      star.position.set(starData.x, starData.y, starData.z);
-      constellationGroup.add(star);
-    });
-    
-    // Crear líneas de conexión
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0x88CCFF,
-      transparent: true,
-      opacity: 0.5,
-      linewidth: 1
-    });
-    
-    constellation.lines.forEach(line => {
-      const points = [];
-      points.push(new THREE.Vector3(
-        constellation.stars[line[0]].x,
-        constellation.stars[line[0]].y,
-        constellation.stars[line[0]].z
-      ));
-      points.push(new THREE.Vector3(
-        constellation.stars[line[1]].x,
-        constellation.stars[line[1]].y,
-        constellation.stars[line[1]].z
-      ));
-      
-      const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-      const lineMesh = new THREE.Line(lineGeometry, lineMaterial);
-      constellationGroup.add(lineMesh);
-    });
-    
-    scene.add(constellationGroup);
-  });
-}
-
-createRealisticConstellations();
-
-// 🎮 CONTROLES DE MOVIMIENTO LIBRE
-const keys = {};
-window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
 let dragging = false, lastX = 0, lastY = 0;
 
+// 🖱️ Eventos para PC
 canvas.addEventListener("mousedown", e => {
   dragging = true;
   lastX = e.clientX;
@@ -790,15 +352,15 @@ canvas.addEventListener("mouseup", () => dragging = false);
 canvas.addEventListener("mouseleave", () => dragging = false);
 canvas.addEventListener("mousemove", e => {
   if (!dragging) return;
-  const dx = e.clientX - lastX;
-  const dy = e.clientY - lastY;
-  cameraRotation.yaw -= dx * 0.003;
-  cameraRotation.pitch -= dy * 0.003;
-  cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  rotY -= dx * 0.005;
+  rotX -= dy * 0.005;
+  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
+// 📱 Eventos para pantallas táctiles
 canvas.addEventListener("touchstart", e => {
   dragging = true;
   const touch = e.touches[0];
@@ -811,228 +373,110 @@ canvas.addEventListener("touchend", () => dragging = false, { passive: true });
 canvas.addEventListener("touchmove", e => {
   if (!dragging) return;
   const touch = e.touches[0];
-  const dx = touch.clientX - lastX;
-  const dy = touch.clientY - lastY;
-  cameraRotation.yaw -= dx * 0.003;
-  cameraRotation.pitch -= dy * 0.003;
-  cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+  const dx = touch.clientX - lastX, dy = touch.clientY - lastY;
+  rotY -= dx * 0.005;
+  rotX -= dy * 0.005;
+  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
   lastX = touch.clientX;
   lastY = touch.clientY;
 }, { passive: true });
+// 📱 Zoom con gesto de pinza (pinch-zoom en móviles)
+let pinchDist = 0;
 
+canvas.addEventListener("touchmove", e => {
+  // Si hay dos dedos en pantalla, es un gesto de zoom
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const newDist = Math.sqrt(dx * dx + dy * dy);
+
+    if (pinchDist !== 0) {
+      const delta = pinchDist - newDist;
+      targetDist += delta * 0.8; // sensibilidad del zoom
+      targetDist = Math.max(100, Math.min(1000, targetDist)); // límites
+    }
+    pinchDist = newDist;
+  } else if (e.touches.length === 1 && dragging) {
+    // arrastre normal con un solo dedo
+    const touch = e.touches[0];
+    const dx = touch.clientX - lastX, dy = touch.clientY - lastY;
+    rotY -= dx * 0.005;
+    rotX -= dy * 0.005;
+    rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+    lastX = touch.clientX;
+    lastY = touch.clientY;
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", e => {
+  if (e.touches.length < 2) pinchDist = 0;
+}, { passive: true });
+
+// 🔍 Zoom con scroll (PC)
 canvas.addEventListener("wheel", e => {
-  const forward = new THREE.Vector3(
-    Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
-    Math.sin(cameraRotation.pitch),
-    Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
-  );
-  const zoomSpeed = e.deltaY * 0.5;
-  cameraPos.x += forward.x * zoomSpeed;
-  cameraPos.y += forward.y * zoomSpeed;
-  cameraPos.z += forward.z * zoomSpeed;
+  targetDist += e.deltaY * 0.3;
+  targetDist = Math.max(100, Math.min(1000, targetDist));
 });
 
-// 💓 Animación de latidos MEJORADA
+// 💓 Animación de latido sincronizado (corazón + texto)
 let heartPulse = 0;
-function animateHearts() {
-  heartPulse += 0.04;
-  galaxies.forEach(galaxy => {
-    // Latido del corazón
-    const heartScale = 10 + Math.sin(heartPulse) * 0.8;
-    galaxy.heart.scale.set(heartScale, heartScale, heartScale);
-    
-    // Glow pulsante
-    const glowScale = 1 + Math.sin(heartPulse * 1.5) * 0.3;
-    galaxy.heartGlow.scale.set(glowScale, glowScale, glowScale);
-    galaxy.heartGlow.material.opacity = 0.15 + Math.sin(heartPulse * 2) * 0.1;
-    
-    // Texto pulsante
-    const textScaleX = 150 + Math.sin(heartPulse) * 10;
-    const textScaleY = 40 + Math.sin(heartPulse) * 6;
-    galaxy.text.scale.set(textScaleX, textScaleY, 1);
-    galaxy.text.material.opacity = 0.8 + Math.sin(heartPulse * 1.2) * 0.2;
-    
-    // Luz pulsante
-    galaxy.light.intensity = 1.5 + Math.sin(heartPulse * 1.8) * 0.8;
-  });
-  requestAnimationFrame(animateHearts);
+
+function animateHeart() {
+  heartPulse += 0.05;
+
+  // Efecto de latido del corazón
+  if (typeof heartMesh !== "undefined" && heartMesh) {
+    const heartScale = 6 + Math.sin(heartPulse) * 0.4;
+    heartMesh.scale.set(heartScale, heartScale, heartScale);
+  }
+
+  // Efecto sincronizado del texto
+  if (typeof centerSprite !== "undefined" && centerSprite) {
+    const textScaleX = 90 + Math.sin(heartPulse) * 6;
+    const textScaleY = 40 + Math.sin(heartPulse) * 3;
+    centerSprite.scale.set(textScaleX, textScaleY, 1);
+    centerSprite.material.opacity = 0.85 + Math.sin(heartPulse) * 0.15;
+  }
+
+  requestAnimationFrame(animateHeart);
 }
-animateHearts();
+animateHeart();
 
-// === Loop de animación principal MEJORADO ===
-let t = 0;
-function tick() {
+// === Animación ===
+let t=0;
+function tick(){
   requestAnimationFrame(tick);
-  t += 0.01;
-
-  // Movimiento de cámara
-  const moveSpeed = 8;
-  const forward = new THREE.Vector3(
-    Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
-    Math.sin(cameraRotation.pitch),
-    Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
-  );
-  const right = new THREE.Vector3(
-    Math.sin(cameraRotation.yaw + Math.PI / 2),
-    0,
-    Math.cos(cameraRotation.yaw + Math.PI / 2)
-  );
-
-  if (keys['w'] || keys['arrowup']) {
-    cameraPos.x += forward.x * moveSpeed;
-    cameraPos.y += forward.y * moveSpeed;
-    cameraPos.z += forward.z * moveSpeed;
-  }
-  if (keys['s'] || keys['arrowdown']) {
-    cameraPos.x -= forward.x * moveSpeed;
-    cameraPos.y -= forward.y * moveSpeed;
-    cameraPos.z -= forward.z * moveSpeed;
-  }
-  if (keys['a'] || keys['arrowleft']) {
-    cameraPos.x -= right.x * moveSpeed;
-    cameraPos.z -= right.z * moveSpeed;
-  }
-  if (keys['d'] || keys['arrowright']) {
-    cameraPos.x += right.x * moveSpeed;
-    cameraPos.z += right.z * moveSpeed;
-  }
-  if (keys[' ']) cameraPos.y += moveSpeed;
-  if (keys['shift']) cameraPos.y -= moveSpeed;
-
-  camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-
-  const lookAt = new THREE.Vector3(
-    cameraPos.x + forward.x * 100,
-    cameraPos.y + forward.y * 100,
-    cameraPos.z + forward.z * 100
-  );
-  camera.lookAt(lookAt);
-
-  // Animación de galaxias MEJORADA
-  galaxies.forEach(galaxy => {
-    // Anillos giratorios con pulsación
-    galaxy.rings.forEach((ring, index) => {
-      ring.rotation.z += ring.userData.speed;
-      ring.userData.pulse += 0.05;
-      const ringScale = 1 + Math.sin(ring.userData.pulse + index) * 0.1;
-      ring.scale.set(ringScale, ringScale, ringScale);
-      ring.material.opacity = 0.4 - index * 0.1 + Math.sin(ring.userData.pulse * 2) * 0.1;
-    });
-
-    // Palabras flotantes con movimiento orbital realista
-    galaxy.textGroup.children.forEach(sprite => {
-      sprite.userData.theta += sprite.userData.speed;
-      sprite.userData.pulse += sprite.userData.pulseSpeed;
-      
-      // Movimiento orbital elíptico
-      const currentRadius = sprite.userData.originalRadius + Math.sin(sprite.userData.pulse) * 20;
-      
-      sprite.position.x = currentRadius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
-      sprite.position.y = currentRadius * Math.cos(sprite.userData.phi);
-      sprite.position.z = currentRadius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
-      
-      // Pulsación de opacidad
-      sprite.material.opacity = 0.7 + 0.3 * Math.sin(sprite.userData.pulse * 2);
-      
-      // Siempre mirar a la cámara
-      sprite.lookAt(camera.position);
-    });
-
-    // Fotos flotantes con comportamiento similar
-    galaxy.imageGroup.children.forEach(sprite => {
-      sprite.userData.theta += sprite.userData.speed;
-      sprite.userData.pulse += sprite.userData.pulseSpeed;
-      
-      const currentRadius = sprite.userData.originalRadius + Math.sin(sprite.userData.pulse) * 15;
-      
-      sprite.position.x = currentRadius * Math.sin(sprite.userData.phi) * Math.cos(sprite.userData.theta);
-      sprite.position.y = currentRadius * Math.cos(sprite.userData.phi);
-      sprite.position.z = currentRadius * Math.sin(sprite.userData.phi) * Math.sin(sprite.userData.theta);
-      
-      sprite.material.opacity = 0.8 + 0.2 * Math.sin(sprite.userData.pulse * 1.5);
-      
-      sprite.lookAt(camera.position);
-    });
+  t+=.01;
+  ring1.rotation.z+=.002;
+  ring2.rotation.z-=.0015;
+  textGroup.children.forEach(e=>{
+    e.material.opacity=.8+.2*Math.sin(2*t);
+    e.userData.theta+=e.userData.speed;
+    e.position.x=e.userData.radius*Math.sin(e.userData.phi)*Math.cos(e.userData.theta);
+    e.position.z=e.userData.radius*Math.sin(e.userData.phi)*Math.sin(e.userData.theta);
   });
-
-  // Animación de objetos celestes MEJORADA
-  celestialObjects.forEach((obj, index) => {
-    const time = Date.now() * 0.001;
-    
-    switch (obj.type) {
-      case 'saturn':
-        // Rotación y órbita
-        obj.mesh.rotation.y += obj.speed;
-        obj.mesh.children[1].rotation.z += obj.speed * 1.8; // Anillo exterior
-        obj.mesh.children[2].rotation.z += obj.speed * 1.5; // Anillo interior
-        
-        // Órbita elíptica
-        const saturnAngle = time * obj.orbitSpeed;
-        obj.mesh.position.x = Math.cos(saturnAngle) * obj.orbitRadius;
-        obj.mesh.position.z = Math.sin(saturnAngle) * obj.orbitRadius * 0.8;
-        obj.mesh.position.y = Math.sin(saturnAngle * 0.7) * 200;
-        break;
-        
-      case 'jupiter':
-        obj.mesh.rotation.y += obj.speed;
-        obj.mesh.rotation.x += obj.speed * 0.3;
-        
-        // Bandas giratorias
-        obj.mesh.children[1].rotation.y += obj.speed * 2;
-        obj.mesh.children[2].rotation.y += obj.speed * 1.5;
-        
-        const jupiterAngle = time * obj.orbitSpeed;
-        obj.mesh.position.x = Math.cos(jupiterAngle) * obj.orbitRadius;
-        obj.mesh.position.z = Math.sin(jupiterAngle) * obj.orbitRadius;
-        break;
-        
-      case 'uranus':
-        obj.mesh.rotation.y += obj.speed;
-        obj.mesh.children[1].rotation.x += obj.speed * 2;
-        
-        const uranusAngle = time * obj.orbitSpeed;
-        obj.mesh.position.x = Math.cos(uranusAngle) * obj.orbitRadius * 0.9;
-        obj.mesh.position.z = Math.sin(uranusAngle) * obj.orbitRadius;
-        obj.mesh.position.y = Math.cos(uranusAngle * 1.2) * 150;
-        break;
-        
-      case 'moon':
-        obj.mesh.rotation.y += obj.speed;
-        obj.mesh.position.y += Math.sin(t * 0.5 + index) * 1.2;
-        obj.mesh.children[1].intensity = 0.8 + Math.sin(t * 3) * 0.4;
-        
-        const moonAngle = time * obj.orbitSpeed;
-        obj.mesh.position.x = Math.cos(moonAngle) * obj.orbitRadius;
-        obj.mesh.position.z = Math.sin(moonAngle) * obj.orbitRadius;
-        break;
-        
-      case 'mars':
-        obj.mesh.rotation.y += obj.speed;
-        obj.mesh.rotation.z += obj.speed * 0.4;
-        
-        const marsAngle = time * obj.orbitSpeed;
-        obj.mesh.position.x = Math.cos(marsAngle) * obj.orbitRadius;
-        obj.mesh.position.z = Math.sin(marsAngle) * obj.orbitRadius * 0.7;
-        obj.mesh.position.y = Math.sin(marsAngle * 0.8) * 100;
-        break;
-    }
+  imageGroup.children.forEach(e=>{
+    e.material.opacity=.9+.1*Math.sin(2*t);
+    e.userData.theta+=e.userData.speed;
+    e.position.x=e.userData.radius*Math.sin(e.userData.phi)*Math.cos(e.userData.theta);
+    e.position.z=e.userData.radius*Math.sin(e.userData.phi)*Math.sin(e.userData.theta);
   });
+  currentDist += 0.06 * (targetDist - currentDist);
+const n = Math.cos(rotX),
+      a = Math.sin(rotX),
+      r = Math.cos(rotY),
+      i = Math.sin(rotY);
 
-  // Animación de nebulosas
-  nebulae.forEach((nebula, index) => {
-    nebula.rotation.y += 0.0001 * (index + 1);
-    nebula.material.opacity = 0.1 + Math.sin(t * 0.3 + index) * 0.05;
-  });
+// 🌀 Movimiento de la cámara (alrededor del centro)
+camera.position.set(currentDist * i * n, currentDist * a, currentDist * r * n);
+camera.lookAt(0, 0, 0);
 
-  renderer.render(scene, camera);
+// 💞 Hace que el corazón + texto siempre miren a la cámara (como uno solo)
+loveGroup.lookAt(camera.position);
+renderer.render(scene, camera);
 }
 tick();
-
-// Responsive
-window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-console.log("Enhanced constellation scene loaded successfully!");
+</script>
+</body>
+</html>
