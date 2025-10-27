@@ -183,8 +183,8 @@ for (let i = shuffledPhotos.length - 1; i > 0; i--) {
 // Posiciones de las 3 galaxias
 const galaxyPositions = [
   { x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA" },
-  { x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO" },
-  { x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA" }
+  { x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO LILIANA" },
+  { x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA LILIANA" }
 ];
 
 // === Función para crear una galaxia ===
