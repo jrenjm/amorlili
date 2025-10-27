@@ -482,16 +482,25 @@ for (let i = 0; i < galaxyPositions.length; i++) {
   galaxies.push(galaxy);
 }
 
-// 🎮 CONTROLES DE MOVIMIENTO LIBRE
+// 🎮 CONTROLES DE MOVIMIENTO LIBRE UNIFICADOS
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
 window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
 let dragging = false, lastX = 0, lastY = 0;
 
-// Controles de cámara para móvil (táctiles simples)
+// Variables para zoom unificado
 let touchStartDistance = 0;
 let initialFov = camera.fov;
+let isZooming = false;
+
+// === DETECCIÓN DE DISPOSITIVO ===
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Configuración unificada para todos los dispositivos
+const ZOOM_SENSITIVITY = isMobile ? 0.8 : 0.5; // Más sensible en móvil
+const ROTATION_SENSITIVITY = isMobile ? 0.004 : 0.003; // Similar sensibilidad
+const MOVE_SPEED = isMobile ? 6 : 5; // Velocidad similar
 
 canvas.addEventListener("mousedown", e => {
   dragging = true;
@@ -506,8 +515,8 @@ canvas.addEventListener("mousemove", e => {
   const dy = e.clientY - lastY;
   
   // Movimiento suave de rotación
-  targetCameraRotation.yaw -= dx * 0.003;
-  targetCameraRotation.pitch -= dy * 0.003;
+  targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
+  targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
   targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
   isMoving = true;
   
@@ -515,7 +524,7 @@ canvas.addEventListener("mousemove", e => {
   lastY = e.clientY;
 });
 
-// === CONTROLES TÁCTILES SIMPLIFICADOS ===
+// === CONTROLES TÁCTILES UNIFICADOS ===
 canvas.addEventListener("touchstart", e => {
   if (e.touches.length === 1) {
     // Un dedo: rotar cámara
@@ -525,6 +534,7 @@ canvas.addEventListener("touchstart", e => {
     lastY = touch.clientY;
   } else if (e.touches.length === 2) {
     // Dos dedos: zoom
+    isZooming = true;
     touchStartDistance = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
@@ -535,6 +545,7 @@ canvas.addEventListener("touchstart", e => {
 
 canvas.addEventListener("touchend", () => {
   dragging = false;
+  isZooming = false;
   touchStartDistance = 0;
 }, { passive: true });
 
@@ -546,40 +557,58 @@ canvas.addEventListener("touchmove", e => {
     const dy = touch.clientY - lastY;
     
     // Movimiento suave de rotación
-    targetCameraRotation.yaw -= dx * 0.003;
-    targetCameraRotation.pitch -= dy * 0.003;
+    targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
+    targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
     targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
     isMoving = true;
     
     lastX = touch.clientX;
     lastY = touch.clientY;
-  } else if (e.touches.length === 2 && touchStartDistance > 0) {
-    // Dos dedos: zoom con pellizco suave
+  } else if (e.touches.length === 2 && isZooming) {
+    // Dos dedos: zoom con pellizco - SIN LÍMITES
     const currentDistance = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
-    const zoomFactor = touchStartDistance / currentDistance;
-    camera.fov = initialFov * zoomFactor;
-    camera.fov = Math.max(20, Math.min(100, camera.fov));
-    camera.updateProjectionMatrix();
+    
+    if (touchStartDistance > 0) {
+      const zoomFactor = touchStartDistance / currentDistance;
+      
+      // Zoom mediante movimiento de cámara en lugar de FOV - SIN LÍMITES
+      const forward = new THREE.Vector3(
+        Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
+        Math.sin(cameraRotation.pitch),
+        Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
+      );
+      
+      const zoomAmount = (zoomFactor - 1) * 50 * ZOOM_SENSITIVITY;
+      targetCameraPos.x += forward.x * zoomAmount;
+      targetCameraPos.y += forward.y * zoomAmount;
+      targetCameraPos.z += forward.z * zoomAmount;
+      isMoving = true;
+    }
+    
+    touchStartDistance = currentDistance;
   }
 }, { passive: true });
 
+// === ZOOM CON RUEDA UNIFICADO - SIN LÍMITES ===
 canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  
   const forward = new THREE.Vector3(
     Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
     Math.sin(cameraRotation.pitch),
     Math.cos(cameraRotation.yaw) * Math.cos(cameraRotation.pitch)
   );
-  const zoomSpeed = e.deltaY * 0.5;
   
-  // Movimiento suave de zoom
+  // Zoom mediante movimiento de cámara - SIN LÍMITES
+  const zoomSpeed = e.deltaY * ZOOM_SENSITIVITY;
   targetCameraPos.x += forward.x * zoomSpeed;
   targetCameraPos.y += forward.y * zoomSpeed;
   targetCameraPos.z += forward.z * zoomSpeed;
   isMoving = true;
-});
+}, { passive: false });
 
 // 💓 Animación de latidos
 let heartPulse = 0;
@@ -604,7 +633,6 @@ function tick() {
   requestAnimationFrame(tick);
   t += 0.01;
 
-  const moveSpeed = 5;
   const forward = new THREE.Vector3(
     Math.sin(cameraRotation.yaw) * Math.cos(cameraRotation.pitch),
     Math.sin(cameraRotation.pitch),
@@ -618,33 +646,33 @@ function tick() {
 
   // Controles de teclado con movimiento suave
   if (keys['w'] || keys['arrowup']) {
-    targetCameraPos.x += forward.x * moveSpeed;
-    targetCameraPos.y += forward.y * moveSpeed;
-    targetCameraPos.z += forward.z * moveSpeed;
+    targetCameraPos.x += forward.x * MOVE_SPEED;
+    targetCameraPos.y += forward.y * MOVE_SPEED;
+    targetCameraPos.z += forward.z * MOVE_SPEED;
     isMoving = true;
   }
   if (keys['s'] || keys['arrowdown']) {
-    targetCameraPos.x -= forward.x * moveSpeed;
-    targetCameraPos.y -= forward.y * moveSpeed;
-    targetCameraPos.z -= forward.z * moveSpeed;
+    targetCameraPos.x -= forward.x * MOVE_SPEED;
+    targetCameraPos.y -= forward.y * MOVE_SPEED;
+    targetCameraPos.z -= forward.z * MOVE_SPEED;
     isMoving = true;
   }
   if (keys['a'] || keys['arrowleft']) {
-    targetCameraPos.x -= right.x * moveSpeed;
-    targetCameraPos.z -= right.z * moveSpeed;
+    targetCameraPos.x -= right.x * MOVE_SPEED;
+    targetCameraPos.z -= right.z * MOVE_SPEED;
     isMoving = true;
   }
   if (keys['d'] || keys['arrowright']) {
-    targetCameraPos.x += right.x * moveSpeed;
-    targetCameraPos.z += right.z * moveSpeed;
+    targetCameraPos.x += right.x * MOVE_SPEED;
+    targetCameraPos.z += right.z * MOVE_SPEED;
     isMoving = true;
   }
   if (keys[' ']) {
-    targetCameraPos.y += moveSpeed;
+    targetCameraPos.y += MOVE_SPEED;
     isMoving = true;
   }
   if (keys['shift']) {
-    targetCameraPos.y -= moveSpeed;
+    targetCameraPos.y -= MOVE_SPEED;
     isMoving = true;
   }
 
