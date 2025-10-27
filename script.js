@@ -14,7 +14,7 @@ const audio = document.getElementById("audio"),
 let isPlaying = false;
 let currentSong = 0;
 
-// 🎵 Lista de canciones
+// 🎵 Lista de canciones (mantengo exactamente tus rutas)
 const songs = [
   { name: "Only", src: "./playlist/Only.mp3" },
   { name: "LIVE FOREVER(Español)-OASIS", src: "./playlist/LIVE FOREVER(Español)-OASIS.mp3" },
@@ -86,11 +86,13 @@ audio.addEventListener("ended", () => {
 loadSong(currentSong);
 
 // === Escena THREE.JS ===
+// canvas y renderer (mejor manejo DPR ya está)
 const canvas = document.getElementById("c"),
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(innerWidth, innerHeight);
 
+// escena y cámara
 const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
 
@@ -103,12 +105,31 @@ let cameraRotation = { yaw: Math.PI, pitch: 0 };
 let targetCameraPos = { ...cameraPos };
 let targetCameraRotation = { ...cameraRotation };
 let isMoving = false;
-const SMOOTHNESS = 0.1;
+// UNICA DECLARACION SMOOTHNESS (evita redeclaraciones)
+const SMOOTHNESS = 0.08;
 const ZOOM_SMOOTHNESS = 0.05;
+
+// ===== Mejoras añadidas =====
+// inercia de rotación para suavizar arrastres
+let rotInertia = { yaw: 0, pitch: 0 };
+// factor de amortiguamiento (0..1)
+const INERTIA_DAMP = 0.86;
+// limite para evitar NaN/inf
+const SAFE_MIN = 1e-6;
+
+// FPS limiter: no forzamos cambios, pero permitimos un delta adaptativo
+let lastFrameTime = performance.now();
+const MAX_DELTA = 0.04; // evita saltos si tab inactivo (40ms)
+
 
 // === Iluminación global ===
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
+
+// luz dinámica adicional para efecto visual
+const dynLight = new THREE.PointLight(0xffffff, 0.6, 5000);
+dynLight.position.set(0, 200, 500);
+scene.add(dynLight);
 
 // === Fondo espacial ===
 const loader = new THREE.TextureLoader();
@@ -135,13 +156,18 @@ loader.load(
     positions[3 * i + 2] = radius * Math.sin(phi) * Math.sin(theta);
   }
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({
+  // material para fondo de estrellas con slight twinkle posible
+  const starMat = new THREE.PointsMaterial({
     size: 2.5,
     color: 0xffffff,
     depthWrite: false,
     transparent: true,
     opacity: 0.8
-  })));
+  });
+  const starField = new THREE.Points(geometry, starMat);
+  // guardamos referencia para animar pulso sutil
+  starField.userData = { baseOpacity: 0.8, twinkleOffset: Math.random() * 1000 };
+  scene.add(starField);
 })();
 
 // 🌌 PALABRAS BONITAS DUPLICADAS (400 por galaxia)
@@ -271,7 +297,7 @@ function createGalaxyStars(position, count = 300, radius = 400) {
   });
   
   const stars = new THREE.Points(geometry, material);
-  stars.userData = { originalPositions: [...positions], velocities: [...velocities] };
+  stars.userData = { originalPositions: [...positions], velocities: [...velocities], twinkleOffset: Math.random() * 1000 };
   return stars;
 }
 
@@ -501,11 +527,13 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 const MOVE_SPEED = 5;
 const ROTATION_SENSITIVITY = 0.0035;
 const ZOOM_SENSITIVITY = 0.15;
-const SMOOTHNESS = 0.08;
 
 // Objetivos para suavizar la interpolación
 let targetPos = { ...cameraPos };
 let targetRot = { ...cameraRotation };
+
+// Ajustes para móviles (menos sensibilidad)
+const MOBILE_ADJUST = isMobile ? 0.6 : 1.0;
 
 // === Eventos de ratón ===
 canvas.addEventListener("mousedown", e => {
@@ -517,8 +545,11 @@ canvas.addEventListener("mouseup", () => (dragging = false));
 canvas.addEventListener("mouseleave", () => (dragging = false));
 canvas.addEventListener("mousemove", e => {
   if (!dragging) return;
-  const dx = e.clientX - lastX;
-  const dy = e.clientY - lastY;
+  const dx = (e.clientX - lastX) * MOBILE_ADJUST;
+  const dy = (e.clientY - lastY) * MOBILE_ADJUST;
+  // suavizamos aplicando inercia
+  rotInertia.yaw += -dx * ROTATION_SENSITIVITY * 0.6;
+  rotInertia.pitch += -dy * ROTATION_SENSITIVITY * 0.6;
   targetRot.yaw -= dx * ROTATION_SENSITIVITY;
   targetRot.pitch -= dy * ROTATION_SENSITIVITY;
   targetRot.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRot.pitch));
@@ -529,7 +560,7 @@ canvas.addEventListener("mousemove", e => {
 // === Zoom con rueda ===
 canvas.addEventListener("wheel", e => {
   e.preventDefault();
-  targetPos.z += e.deltaY * ZOOM_SENSITIVITY;
+  targetPos.z += e.deltaY * ZOOM_SENSITIVITY * (isMobile ? 0.6 : 1);
   targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
 });
 
@@ -557,11 +588,13 @@ canvas.addEventListener("touchmove", e => {
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     const distance = Math.hypot(dx, dy);
     const delta = (touchStartDistance - distance) * 0.02;
-    targetPos.z += delta * 50;
+    targetPos.z += delta * 50 * (isMobile ? 0.6 : 1);
     targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
   } else if (dragging && e.touches.length === 1) {
-    const dx = e.touches[0].clientX - lastX;
-    const dy = e.touches[0].clientY - lastY;
+    const dx = (e.touches[0].clientX - lastX) * MOBILE_ADJUST;
+    const dy = (e.touches[0].clientY - lastY) * MOBILE_ADJUST;
+    rotInertia.yaw += -dx * ROTATION_SENSITIVITY * 0.6;
+    rotInertia.pitch += -dy * ROTATION_SENSITIVITY * 0.6;
     targetRot.yaw -= dx * ROTATION_SENSITIVITY * 2;
     targetRot.pitch -= dy * ROTATION_SENSITIVITY * 2;
     targetRot.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRot.pitch));
@@ -575,18 +608,23 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-// === Bucle de animación ===
+// ===== Animación principal mejorada =====
 function animate() {
+  const now = performance.now();
+  let delta = (now - lastFrameTime) / 1000;
+  lastFrameTime = now;
+  if (delta > MAX_DELTA) delta = MAX_DELTA; // evita saltos grandes
+
   requestAnimationFrame(animate);
 
-  // Movimiento WASD suave
-  const forward = keys["w"] ? 1 : keys["s"] ? -1 : 0;
-  const right = keys["d"] ? 1 : keys["a"] ? -1 : 0;
-  const up = keys[" "] ? 1 : keys["shift"] ? -1 : 0;
+  // Movimiento WASD suave - (soporte teclas)
+  const forward = keys["w"] || keys["W"] ? 1 : keys["s"] || keys["S"] ? -1 : 0;
+  const right = keys["d"] || keys["D"] ? 1 : keys["a"] || keys["A"] ? -1 : 0;
+  const up = keys[" "] ? 1 : keys["Shift"] ? -1 : 0;
 
-  const speed = MOVE_SPEED;
-  const sinY = Math.sin(targetRot.yaw);
-  const cosY = Math.cos(targetRot.yaw);
+  const speed = MOVE_SPEED * (isMobile ? 0.6 : 1) * delta * 60; // escalado por delta
+  const sinY = Math.sin(targetRot.yaw || 0);
+  const cosY = Math.cos(targetRot.yaw || 0);
 
   targetPos.x += (right * cosY - forward * sinY) * speed;
   targetPos.z += (forward * cosY + right * sinY) * speed;
@@ -597,39 +635,73 @@ function animate() {
   cameraPos.y = lerp(cameraPos.y, targetPos.y, SMOOTHNESS);
   cameraPos.z = lerp(cameraPos.z, targetPos.z, SMOOTHNESS);
 
-  cameraRotation.yaw = lerp(cameraRotation.yaw, targetRot.yaw, SMOOTHNESS);
-  cameraRotation.pitch = lerp(cameraRotation.pitch, targetRot.pitch, SMOOTHNESS);
+  cameraRotation.yaw = lerp(cameraRotation.yaw, targetRot.yaw || 0, SMOOTHNESS);
+  cameraRotation.pitch = lerp(cameraRotation.pitch, targetRot.pitch || 0, SMOOTHNESS);
+
+  // aplicar rotación con inercia amortiguada
+  cameraRotation.yaw += rotInertia.yaw * delta;
+  cameraRotation.pitch += rotInertia.pitch * delta;
+  rotInertia.yaw *= Math.pow(INERTIA_DAMP, delta * 60);
+  rotInertia.pitch *= Math.pow(INERTIA_DAMP, delta * 60);
+
+  // evitar NaN
+  if (!isFinite(cameraRotation.yaw)) cameraRotation.yaw = 0;
+  if (!isFinite(cameraRotation.pitch)) cameraRotation.pitch = 0;
 
   // Actualizar posición y orientación
   camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-  camera.rotation.set(cameraRotation.pitch, cameraRotation.yaw, 0);
+  // usar lookAt + small rotation offset to keep stable orientation
+  const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(cameraRotation.pitch, cameraRotation.yaw, 0, "YXZ"));
+  camera.quaternion.slerp(quat, 0.5); // suaviza la orientación
 
-  // Animación de galaxias, estrellas, etc.
-  galaxies.forEach(g => {
-    g.ring1.rotation.z += 0.001;
-    g.ring2.rotation.z -= 0.001;
-    g.ring3.rotation.z += 0.0005;
+  // Animación de galaxias, estrellas, etc. + efectos visuales
+  const t = performance.now() * 0.001;
+  galaxies.forEach((g, idx) => {
+    // girar anillos si existen (preservando tu lógica)
+    if (g.ring1) g.ring1.rotation.z += 0.001 * (1 + idx * 0.2);
+    if (g.ring2) g.ring2.rotation.z -= 0.001 * (1 + idx * 0.2);
+    if (g.ring3) g.ring3.rotation.z += 0.0005 * (1 + idx * 0.2);
 
-    g.textGroup.children.forEach(s => {
-      s.userData.theta += s.userData.speed;
-      s.position.x = s.userData.radius * Math.sin(s.userData.phi) * Math.cos(s.userData.theta);
-      s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
-      const scalePulse = 1 + 0.15 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
-      s.scale.set(45 * scalePulse, 14 * scalePulse, 1);
-    });
+    // twinkle sutil de las estrellas de la galaxia (si existe)
+    if (g.stars && g.stars.material) {
+      const base = g.stars.userData?.baseOpacity ?? 0.8;
+      g.stars.material.opacity = base * (0.75 + 0.25 * Math.sin(t * 1.5 + (g.stars.userData?.twinkleOffset || 0)));
+      // opcional: variar tamaño levemente para efecto parpadeo
+      // g.stars.material.size = 1.8 + 0.6 * Math.sin(t * 2 + idx);
+    }
 
-    g.imageGroup.children.forEach(s => {
-      s.userData.theta += s.userData.speed;
-      s.position.x = s.userData.radius * Math.sin(s.userData.phi) * Math.cos(s.userData.theta);
-      s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
-      const scalePulse = 1 + 0.2 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
-      s.scale.set(40 * scalePulse, 40 * scalePulse, 1);
-    });
+    // animación texto flotante y fotos (preserva tu lógica)
+    if (g.textGroup && g.textGroup.children) {
+      g.textGroup.children.forEach(s => {
+        s.userData.theta += s.userData.speed;
+        s.position.x = s.userData.radius * Math.sin(s.userData.phi) * Math.cos(s.userData.theta);
+        s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
+        const scalePulse = 1 + 0.15 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
+        s.scale.set(45 * scalePulse, 14 * scalePulse, 1);
+        // brillo sutil
+        if (s.material) s.material.opacity = 0.85 + 0.15 * Math.sin(t * 2 + s.userData.pulseOffset);
+      });
+    }
+
+    if (g.imageGroup && g.imageGroup.children) {
+      g.imageGroup.children.forEach(s => {
+        s.userData.theta += s.userData.speed;
+        s.position.x = s.userData.radius * Math.sin(s.userData.phi) * Math.cos(s.userData.theta);
+        s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
+        const scalePulse = 1 + 0.2 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
+        s.scale.set(40 * scalePulse, 40 * scalePulse, 1);
+        if (s.material) s.material.opacity = 0.85 + 0.15 * Math.sin(t * 1.5 + s.userData.pulseOffset);
+      });
+    }
   });
 
+  // pulso de la luz dinámica para efecto visual
+  dynLight.intensity = 0.45 + 0.15 * Math.sin(t * 0.8);
+
+  // render
   renderer.render(scene, camera);
 }
 
 animate();
 
-
+// === FIN DEL CÓDIGO ===
