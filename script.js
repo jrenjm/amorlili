@@ -169,8 +169,8 @@ const ALL_WORDS = [
 
 // 🌌 CONFIGURACIÓN DE 3 GALAXIAS
 const galaxies = [];
-const totalPhotos = 100;
-const photosPerGalaxy = 33;
+const totalPhotos = 200; // Duplicado de 100 a 200 fotos
+const photosPerGalaxy = 66; // Duplicado de 33 a 66 fotos por galaxia
 
 // Mezclar fotos aleatoriamente
 const shuffledPhotos = [];
@@ -180,11 +180,11 @@ for (let i = shuffledPhotos.length - 1; i > 0; i--) {
   [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
 }
 
-// Posiciones de las 3 galaxias
+// Posiciones de las 3 galaxias (más cercanas entre sí)
 const galaxyPositions = [
   { x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA" },
-  { x: 2000, y: 400, z: -1200, color: 0xff66ff, name: "ERES MI TODO LILIANA" },
-  { x: -1800, y: -500, z: 1500, color: 0x66ccff, name: "MI PRINCESA LILIANA" }
+  { x: 1000, y: 200, z: -600, color: 0xff66ff, name: "ERES MI TODO LILIANA" }, // Reducidas las distancias
+  { x: -900, y: -250, z: 750, color: 0x66ccff, name: "MI PRINCESA LILIANA" } // Reducidas las distancias
 ];
 
 // === Función para crear una galaxia ===
@@ -382,6 +382,10 @@ window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
 let dragging = false, lastX = 0, lastY = 0;
 
+// Controles de cámara para móvil (táctiles simples)
+let touchStartDistance = 0;
+let initialFov = camera.fov;
+
 canvas.addEventListener("mousedown", e => {
   dragging = true;
   lastX = e.clientX;
@@ -400,25 +404,51 @@ canvas.addEventListener("mousemove", e => {
   lastY = e.clientY;
 });
 
+// === CONTROLES TÁCTILES SIMPLIFICADOS ===
 canvas.addEventListener("touchstart", e => {
-  dragging = true;
-  const touch = e.touches[0];
-  lastX = touch.clientX;
-  lastY = touch.clientY;
+  if (e.touches.length === 1) {
+    // Un dedo: rotar cámara
+    dragging = true;
+    const touch = e.touches[0];
+    lastX = touch.clientX;
+    lastY = touch.clientY;
+  } else if (e.touches.length === 2) {
+    // Dos dedos: zoom
+    touchStartDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    initialFov = camera.fov;
+  }
 }, { passive: true });
 
-canvas.addEventListener("touchend", () => dragging = false, { passive: true });
+canvas.addEventListener("touchend", () => {
+  dragging = false;
+  touchStartDistance = 0;
+}, { passive: true });
 
 canvas.addEventListener("touchmove", e => {
-  if (!dragging) return;
-  const touch = e.touches[0];
-  const dx = touch.clientX - lastX;
-  const dy = touch.clientY - lastY;
-  cameraRotation.yaw -= dx * 0.003;
-  cameraRotation.pitch -= dy * 0.003;
-  cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
-  lastX = touch.clientX;
-  lastY = touch.clientY;
+  if (e.touches.length === 1 && dragging) {
+    // Un dedo: rotar cámara
+    const touch = e.touches[0];
+    const dx = touch.clientX - lastX;
+    const dy = touch.clientY - lastY;
+    cameraRotation.yaw -= dx * 0.003;
+    cameraRotation.pitch -= dy * 0.003;
+    cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+    lastX = touch.clientX;
+    lastY = touch.clientY;
+  } else if (e.touches.length === 2 && touchStartDistance > 0) {
+    // Dos dedos: zoom con pellizco
+    const currentDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const zoomFactor = touchStartDistance / currentDistance;
+    camera.fov = initialFov * zoomFactor;
+    camera.fov = Math.max(20, Math.min(100, camera.fov));
+    camera.updateProjectionMatrix();
+  }
 }, { passive: true });
 
 canvas.addEventListener("wheel", e => {
@@ -468,6 +498,7 @@ function tick() {
     Math.cos(cameraRotation.yaw + Math.PI / 2)
   );
 
+  // Controles de teclado
   if (keys['w'] || keys['arrowup']) {
     cameraPos.x += forward.x * moveSpeed;
     cameraPos.y += forward.y * moveSpeed;
