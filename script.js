@@ -99,7 +99,9 @@ const scene = new THREE.Scene(),
 // 🎮 Control de cámara con movimiento libre
 let cameraPos = { x: 0, y: 0, z: 2000 };
 let cameraVelocity = { x: 0, y: 0, z: 0 };
-let cameraRotation = { yaw: Math.PI, pitch: 0 };
+// La cámara ahora mira hacia -Z (dirección natural en THREE.js)
+let cameraRotation = { yaw: 0, pitch: 0 };
+
 
 // Variables para movimiento suave
 let targetCameraPos = { ...cameraPos };
