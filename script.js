@@ -107,9 +107,92 @@ let cameraRotation = { yaw: 0, pitch: 0 };
 let targetCameraPos = { ...cameraPos };
 let targetCameraRotation = { ...cameraRotation };
 let isMoving = false;
+
 // UNICA DECLARACION SMOOTHNESS (evita redeclaraciones)
 const SMOOTHNESS = 0.08;
 const ZOOM_SMOOTHNESS = 0.05;
+// === CONTROL DE CÁMARA CON MOUSE ===
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+
+// Sensibilidad adaptada a PC y móvil
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const ZOOM_SENSITIVITY = isMobile ? 10 : 5;
+const ROTATION_SENSITIVITY = isMobile ? 0.01 : 0.04;
+const MOVE_SPEED = isMobile ? 6 : 4;
+
+// Eventos de mouse / touch
+canvas.addEventListener("mousedown", e => {
+  isDragging = true;
+  lastMouse.x = e.clientX;
+  lastMouse.y = e.clientY;
+});
+
+canvas.addEventListener("mouseup", () => (isDragging = false));
+canvas.addEventListener("mouseleave", () => (isDragging = false));
+
+canvas.addEventListener("mousemove", e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  lastMouse.x = e.clientX;
+  lastMouse.y = e.clientY;
+
+  targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
+  targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
+
+  // Limitar el ángulo vertical (pitch)
+  targetCameraRotation.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetCameraRotation.pitch));
+});
+
+// === Zoom con rueda del mouse ===
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  const zoomDir = Math.sign(e.deltaY);
+  targetCameraPos.z += zoomDir * ZOOM_SENSITIVITY * 20;
+  targetCameraPos.z = Math.max(300, Math.min(5000, targetCameraPos.z));
+});
+
+// === Soporte táctil (móvil) ===
+let lastTouchDistance = 0;
+
+canvas.addEventListener("touchstart", e => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    lastMouse.x = e.touches[0].clientX;
+    lastMouse.y = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    lastTouchDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+});
+
+canvas.addEventListener("touchmove", e => {
+  if (e.touches.length === 1 && isDragging) {
+    const touch = e.touches[0];
+    const dx = touch.clientX - lastMouse.x;
+    const dy = touch.clientY - lastMouse.y;
+    lastMouse.x = touch.clientX;
+    lastMouse.y = touch.clientY;
+
+    targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
+    targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
+    targetCameraRotation.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetCameraRotation.pitch));
+  } else if (e.touches.length === 2) {
+    const newDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const zoomDir = lastTouchDistance - newDistance;
+    targetCameraPos.z += zoomDir * 0.5;
+    targetCameraPos.z = Math.max(300, Math.min(5000, targetCameraPos.z));
+    lastTouchDistance = newDistance;
+  }
+});
+
+canvas.addEventListener("touchend", () => (isDragging = false));
 
 // ===== Mejoras añadidas =====
 // inercia de rotación para suavizar arrastres
