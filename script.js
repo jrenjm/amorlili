@@ -96,18 +96,17 @@ renderer.setSize(innerWidth, innerHeight);
 const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
 
-// POSICIÓN Y ORIENTACIÓN INICIAL CORREGIDA
-camera.position.set(0, 0, 2000);
-camera.lookAt(0, 0, 0);
-
-
-// === VARIABLES DE CÁMARA ===
+// 🎮 Control de cámara con movimiento libre
 let cameraPos = { x: 0, y: 0, z: 2000 };
 let cameraVelocity = { x: 0, y: 0, z: 0 };
+// La cámara ahora mira hacia -Z (dirección natural en THREE.js)
 let cameraRotation = { yaw: 0, pitch: 0 };
+
+
+// Variables para movimiento suave
 let targetCameraPos = { ...cameraPos };
 let targetCameraRotation = { ...cameraRotation };
-
+let isMoving = false;
 // UNICA DECLARACION SMOOTHNESS (evita redeclaraciones)
 const SMOOTHNESS = 0.08;
 const ZOOM_SMOOTHNESS = 0.05;
@@ -511,84 +510,104 @@ for (let i = 0; i < galaxyPositions.length; i++) {
   galaxies.push(galaxy);
 }
 
-// === ⚙️ CONTROL DE CÁMARA SEGÚN DISPOSITIVO ===
-const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+// 🎮 CONTROLES DE MOVIMIENTO LIBRE SUAVE UNIVERSAL
+const keys = {};
+window.addEventListener("keydown", e => (keys[e.key.toLowerCase()] = true));
+window.addEventListener("keyup", e => (keys[e.key.toLowerCase()] = false));
 
-// Sensibilidades ajustadas
-const ROTATION_SENSITIVITY = isMobile ? 0.002 : 0.004;
-const ZOOM_SENSITIVITY = isMobile ? 2.5 : 1.2;
+let dragging = false, lastX = 0, lastY = 0;
 
-// Variables de control
-let isUserInteracting = false;
-let lastX = 0, lastY = 0;
+// Variables para zoom y movimiento táctil
+let touchStartDistance = 0;
+let initialFov = camera.fov;
+let isZooming = false;
 
-// --- Laptop / PC ---
-if (!isMobile) {
-  canvas.addEventListener("mousedown", e => {
-    isUserInteracting = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
-  });
+// Detectar si es móvil
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  window.addEventListener("mouseup", () => isUserInteracting = false);
+// Sensibilidades y velocidades ajustadas para suavidad
+const MOVE_SPEED = 5;
+const ROTATION_SENSITIVITY = 0.0035;
+const ZOOM_SENSITIVITY = 0.15;
 
-  window.addEventListener("mousemove", e => {
-    if (!isUserInteracting) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    lastX = e.clientX;
-    lastY = e.clientY;
+// Objetivos para suavizar la interpolación
+let targetPos = { ...cameraPos };
+let targetRot = { ...cameraRotation };
 
-    targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
-    targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
-    targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
-  });
+// Ajustes para móviles (menos sensibilidad)
+const MOBILE_ADJUST = isMobile ? 0.6 : 1.0;
 
-  // Zoom con rueda
-  window.addEventListener("wheel", e => {
-    const delta = e.deltaY * ZOOM_SENSITIVITY;
-    targetCameraPos.z += delta;
-    targetCameraPos.z = Math.max(400, Math.min(6000, targetCameraPos.z));
-  });
-}
+// === Eventos de ratón ===
+canvas.addEventListener("mousedown", e => {
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+canvas.addEventListener("mouseup", () => (dragging = false));
+canvas.addEventListener("mouseleave", () => (dragging = false));
+canvas.addEventListener("mousemove", e => {
+  if (!dragging) return;
+  const dx = (e.clientX - lastX) * MOBILE_ADJUST;
+  const dy = (e.clientY - lastY) * MOBILE_ADJUST;
+  // suavizamos aplicando inercia
+  rotInertia.yaw += -dx * ROTATION_SENSITIVITY * 0.6;
+  rotInertia.pitch += -dy * ROTATION_SENSITIVITY * 0.6;
+  targetRot.yaw -= dx * ROTATION_SENSITIVITY;
+  targetRot.pitch -= dy * ROTATION_SENSITIVITY;
+  targetRot.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRot.pitch));
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
 
-// --- Celulares / Pantallas táctiles ---
-if (isMobile) {
-  let touchStartDist = 0;
-  let lastTouchX = 0, lastTouchY = 0;
+// === Zoom con rueda ===
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  targetPos.z += e.deltaY * ZOOM_SENSITIVITY * (isMobile ? 0.6 : 1);
+  targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
+});
 
-  canvas.addEventListener("touchstart", e => {
-    if (e.touches.length === 1) {
-      lastTouchX = e.touches[0].clientX;
-      lastTouchY = e.touches[0].clientY;
-    } else if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      touchStartDist = Math.sqrt(dx * dx + dy * dy);
-    }
-  });
+// === Control táctil (rotación + zoom multitáctil) ===
+canvas.addEventListener("touchstart", e => {
+  if (e.touches.length === 1) {
+    dragging = true;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    isZooming = true;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    touchStartDistance = Math.hypot(dx, dy);
+    initialFov = camera.fov;
+  }
+});
+canvas.addEventListener("touchend", () => {
+  dragging = false;
+  isZooming = false;
+});
+canvas.addEventListener("touchmove", e => {
+  if (isZooming && e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const distance = Math.hypot(dx, dy);
+    const delta = (touchStartDistance - distance) * 0.02;
+    targetPos.z += delta * 50 * (isMobile ? 0.6 : 1);
+    targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
+  } else if (dragging && e.touches.length === 1) {
+    const dx = (e.touches[0].clientX - lastX) * MOBILE_ADJUST;
+    const dy = (e.touches[0].clientY - lastY) * MOBILE_ADJUST;
+    rotInertia.yaw += -dx * ROTATION_SENSITIVITY * 0.6;
+    rotInertia.pitch += -dy * ROTATION_SENSITIVITY * 0.6;
+    targetRot.yaw -= dx * ROTATION_SENSITIVITY * 2;
+    targetRot.pitch -= dy * ROTATION_SENSITIVITY * 2;
+    targetRot.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRot.pitch));
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+  }
+});
 
-  canvas.addEventListener("touchmove", e => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      const dx = touch.clientX - lastTouchX;
-      const dy = touch.clientY - lastTouchY;
-      lastTouchX = touch.clientX;
-      lastTouchY = touch.clientY;
-
-      targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY * 2;
-      targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY * 2;
-      targetCameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetCameraRotation.pitch));
-    } else if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const newDist = Math.sqrt(dx * dx + dy * dy);
-      const zoomDelta = (touchStartDist - newDist) * ZOOM_SENSITIVITY;
-      targetCameraPos.z += zoomDelta;
-      targetCameraPos.z = Math.max(400, Math.min(6000, targetCameraPos.z));
-      touchStartDist = newDist;
-    }
-  });
+// === Función para interpolar suavemente ===
+function lerp(a, b, t) {
+  return a + (b - a) * t;
 }
 
 // ===== Animación principal mejorada =====
