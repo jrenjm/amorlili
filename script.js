@@ -96,6 +96,11 @@ renderer.setSize(innerWidth, innerHeight);
 const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 20000);
 
+// POSICIÓN Y ORIENTACIÓN INICIAL CORREGIDA
+camera.position.set(0, 0, 2000);
+camera.lookAt(0, 0, 0);
+
+
 // 🎮 Control de cámara con movimiento libre
 let cameraPos = { x: 0, y: 0, z: 2000 };
 let cameraVelocity = { x: 0, y: 0, z: 0 };
