@@ -102,97 +102,9 @@ let cameraVelocity = { x: 0, y: 0, z: 0 };
 // La cámara ahora mira hacia -Z (dirección natural en THREE.js)
 let cameraRotation = { yaw: 0, pitch: 0 };
 
-
-// Variables para movimiento suave
-let targetCameraPos = { ...cameraPos };
-let targetCameraRotation = { ...cameraRotation };
-let isMoving = false;
-
 // UNICA DECLARACION SMOOTHNESS (evita redeclaraciones)
 const SMOOTHNESS = 0.08;
 const ZOOM_SMOOTHNESS = 0.05;
-// === CONTROL DE CÁMARA CON MOUSE ===
-let isDragging = false;
-let lastMouse = { x: 0, y: 0 };
-
-// Sensibilidad adaptada a PC y móvil
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const ZOOM_SENSITIVITY = isMobile ? 10 : 5;
-const ROTATION_SENSITIVITY = isMobile ? 0.01 : 0.04;
-const MOVE_SPEED = isMobile ? 6 : 4;
-
-// Eventos de mouse / touch
-canvas.addEventListener("mousedown", e => {
-  isDragging = true;
-  lastMouse.x = e.clientX;
-  lastMouse.y = e.clientY;
-});
-
-canvas.addEventListener("mouseup", () => (isDragging = false));
-canvas.addEventListener("mouseleave", () => (isDragging = false));
-
-canvas.addEventListener("mousemove", e => {
-  if (!isDragging) return;
-  const dx = e.clientX - lastMouse.x;
-  const dy = e.clientY - lastMouse.y;
-  lastMouse.x = e.clientX;
-  lastMouse.y = e.clientY;
-
-  targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
-  targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
-
-  // Limitar el ángulo vertical (pitch)
-  targetCameraRotation.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetCameraRotation.pitch));
-});
-
-// === Zoom con rueda del mouse ===
-canvas.addEventListener("wheel", e => {
-  e.preventDefault();
-  const zoomDir = Math.sign(e.deltaY);
-  targetCameraPos.z += zoomDir * ZOOM_SENSITIVITY * 20;
-  targetCameraPos.z = Math.max(300, Math.min(5000, targetCameraPos.z));
-});
-
-// === Soporte táctil (móvil) ===
-let lastTouchDistance = 0;
-
-canvas.addEventListener("touchstart", e => {
-  if (e.touches.length === 1) {
-    isDragging = true;
-    lastMouse.x = e.touches[0].clientX;
-    lastMouse.y = e.touches[0].clientY;
-  } else if (e.touches.length === 2) {
-    lastTouchDistance = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-  }
-});
-
-canvas.addEventListener("touchmove", e => {
-  if (e.touches.length === 1 && isDragging) {
-    const touch = e.touches[0];
-    const dx = touch.clientX - lastMouse.x;
-    const dy = touch.clientY - lastMouse.y;
-    lastMouse.x = touch.clientX;
-    lastMouse.y = touch.clientY;
-
-    targetCameraRotation.yaw -= dx * ROTATION_SENSITIVITY;
-    targetCameraRotation.pitch -= dy * ROTATION_SENSITIVITY;
-    targetCameraRotation.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetCameraRotation.pitch));
-  } else if (e.touches.length === 2) {
-    const newDistance = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    const zoomDir = lastTouchDistance - newDistance;
-    targetCameraPos.z += zoomDir * 0.5;
-    targetCameraPos.z = Math.max(300, Math.min(5000, targetCameraPos.z));
-    lastTouchDistance = newDistance;
-  }
-});
-
-canvas.addEventListener("touchend", () => (isDragging = false));
 
 // ===== Mejoras añadidas =====
 // inercia de rotación para suavizar arrastres
@@ -205,7 +117,6 @@ const SAFE_MIN = 1e-6;
 // FPS limiter: no forzamos cambios, pero permitimos un delta adaptativo
 let lastFrameTime = performance.now();
 const MAX_DELTA = 0.04; // evita saltos si tab inactivo (40ms)
-
 
 // === Iluminación global ===
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
@@ -328,8 +239,8 @@ for (let i = shuffledPhotos.length - 1; i > 0; i--) {
 // Posiciones de las 3 galaxias (más cercanas entre sí)
 const galaxyPositions = [
   { x: 0, y: 0, z: 0, color: 0xff3366, name: "TE AMO LILIANA" },
-  { x: 1000, y: 200, z: -600, color: 0xff66ff, name: "ERES MI TODO LILIANA" }, // Reducidas las distancias
-  { x: -900, y: -250, z: 750, color: 0x66ccff, name: "MI PRINCESA LILIANA" } // Reducidas las distancias
+  { x: 1000, y: 200, z: -600, color: 0xff66ff, name: "ERES MI TODO LILIANA" },
+  { x: -900, y: -250, z: 750, color: 0x66ccff, name: "MI PRINCESA LILIANA" }
 ];
 
 // === Función para crear estrellas alrededor de una galaxia ===
@@ -339,40 +250,36 @@ function createGalaxyStars(position, count = 300, radius = 400) {
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
   const velocities = new Float32Array(count * 3);
-  
+
   for (let i = 0; i < count; i++) {
-    // Posición aleatoria en esfera
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     const r = radius * (0.3 + 0.7 * Math.random());
-    
+
     const x = r * Math.sin(phi) * Math.cos(theta);
     const y = r * Math.cos(phi);
     const z = r * Math.sin(phi) * Math.sin(theta);
-    
+
     positions[i * 3] = x + position.x;
     positions[i * 3 + 1] = y + position.y;
     positions[i * 3 + 2] = z + position.z;
-    
-    // Color blanco con variaciones sutiles
-    colors[i * 3] = 0.8 + 0.2 * Math.random(); // R
-    colors[i * 3 + 1] = 0.8 + 0.2 * Math.random(); // G
-    colors[i * 3 + 2] = 0.9 + 0.1 * Math.random(); // B
-    
-    // Tamaño aleatorio
+
+    colors[i * 3] = 0.8 + 0.2 * Math.random();
+    colors[i * 3 + 1] = 0.8 + 0.2 * Math.random();
+    colors[i * 3 + 2] = 0.9 + 0.1 * Math.random();
+
     sizes[i] = 1 + Math.random() * 3;
-    
-    // Velocidad de movimiento orbital
+
     velocities[i * 3] = (Math.random() - 0.5) * 0.02;
     velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
     velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
   }
-  
+
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
   geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-  
+
   const material = new THREE.PointsMaterial({
     size: 2,
     vertexColors: true,
@@ -380,7 +287,7 @@ function createGalaxyStars(position, count = 300, radius = 400) {
     opacity: 0.8,
     sizeAttenuation: true
   });
-  
+
   const stars = new THREE.Points(geometry, material);
   stars.userData = { originalPositions: [...positions], velocities: [...velocities], twinkleOffset: Math.random() * 1000 };
   return stars;
@@ -430,39 +337,36 @@ function createGalaxy(position, colorHex, galaxyIndex, textContent) {
   galaxyGroup.add(heartMesh);
 
   // === Texto central MEJORADO - Versión dinámica ===
-function makeTextTexture(text) {
-  // Calcular el ancho necesario basado en la longitud del texto
-  const tempCanvas = document.createElement("canvas");
-  const tempCtx = tempCanvas.getContext("2d");
-  tempCtx.font = "bold 450px Arial";
-  const textWidth = tempCtx.measureText(text).width;
-  
-  // Crear canvas con tamaño dinámico
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(4096, textWidth + 800); // Mínimo 4096, más espacio extra
-  canvas.height = 1024;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  ctx.font = "bold 450px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
-  ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
-  ctx.shadowBlur = 60;
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-  return new THREE.CanvasTexture(canvas);
-}
+  function makeTextTexture(text) {
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.font = "bold 450px Arial";
+    const textWidth = tempCtx.measureText(text).width;
 
-const centerTex = makeTextTexture(textContent);
-const centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false });
-const centerSprite = new THREE.Sprite(centerMat);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(4096, textWidth + 800);
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Escala dinámica basada en el ancho del texto
-const scaleX = 120 + (textContent.length * 2); // Ajusta según la longitud del texto
-centerSprite.scale.set(scaleX, 50, 1);
-centerSprite.position.set(0, 50, 0);
-galaxyGroup.add(centerSprite);
+    ctx.font = "bold 450px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
+    ctx.shadowColor = `#${colorHex.toString(16).padStart(6, '0')}`;
+    ctx.shadowBlur = 60;
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  const centerTex = makeTextTexture(textContent);
+  const centerMat = new THREE.SpriteMaterial({ map: centerTex, transparent: true, depthTest: false });
+  const centerSprite = new THREE.Sprite(centerMat);
+
+  const scaleX = 120 + (textContent.length * 2);
+  centerSprite.scale.set(scaleX, 50, 1);
+  centerSprite.position.set(0, 50, 0);
+  galaxyGroup.add(centerSprite);
 
   // === Luz ===
   const light = new THREE.PointLight(colorHex, 1.5, 800);
@@ -506,7 +410,7 @@ galaxyGroup.add(centerSprite);
   const COLORS = ["#ff66ff", "#66ccff", "#ffd36b", "#ff9966", "#8df59a", "#ffa0f8", "#c6a7ff", "#ff4444", "#44ff99", "#99ccff"];
   const textGroup = new THREE.Group();
 
-  for (let i = 0; i < 400; i++) { // Duplicado de 200 a 400
+  for (let i = 0; i < 400; i++) {
     const word = ALL_WORDS[i % ALL_WORDS.length];
     const texture = makeWordTexture(word, COLORS[i % COLORS.length]);
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
@@ -520,10 +424,10 @@ galaxyGroup.add(centerSprite);
       radius * Math.cos(phi),
       radius * Math.sin(phi) * Math.sin(theta)
     );
-    sprite.userData = { 
-      phi, 
-      theta, 
-      radius, 
+    sprite.userData = {
+      phi,
+      theta,
+      radius,
       speed: 0.0008 + 0.0012 * Math.random(),
       pulseSpeed: 0.5 + Math.random() * 1.5,
       pulseOffset: Math.random() * Math.PI * 2
@@ -555,10 +459,10 @@ galaxyGroup.add(centerSprite);
           radius * Math.cos(phi),
           radius * Math.sin(phi) * Math.sin(theta)
         );
-        sprite.userData = { 
-          phi, 
-          theta, 
-          radius, 
+        sprite.userData = {
+          phi,
+          theta,
+          radius,
           speed: 0.0008 + 0.0012 * Math.random(),
           pulseSpeed: 0.3 + Math.random() * 1.0,
           pulseOffset: Math.random() * Math.PI * 2
@@ -632,7 +536,6 @@ canvas.addEventListener("mousemove", e => {
   if (!dragging) return;
   const dx = (e.clientX - lastX) * MOBILE_ADJUST;
   const dy = (e.clientY - lastY) * MOBILE_ADJUST;
-  // suavizamos aplicando inercia
   rotInertia.yaw += -dx * ROTATION_SENSITIVITY * 0.6;
   rotInertia.pitch += -dy * ROTATION_SENSITIVITY * 0.6;
   targetRot.yaw -= dx * ROTATION_SENSITIVITY;
@@ -698,16 +601,15 @@ function animate() {
   const now = performance.now();
   let delta = (now - lastFrameTime) / 1000;
   lastFrameTime = now;
-  if (delta > MAX_DELTA) delta = MAX_DELTA; // evita saltos grandes
+  if (delta > MAX_DELTA) delta = MAX_DELTA;
 
   requestAnimationFrame(animate);
 
-  // Movimiento WASD suave - (soporte teclas)
   const forward = keys["w"] || keys["W"] ? 1 : keys["s"] || keys["S"] ? -1 : 0;
   const right = keys["d"] || keys["D"] ? 1 : keys["a"] || keys["A"] ? -1 : 0;
-  const up = keys[" "] ? 1 : keys["Shift"] ? -1 : 0;
+  const up = keys[" "] ? 1 : keys["shift"] ? -1 : 0;
 
-  const speed = MOVE_SPEED * (isMobile ? 0.6 : 1) * delta * 60; // escalado por delta
+  const speed = MOVE_SPEED * (isMobile ? 0.6 : 1) * delta * 60;
   const sinY = Math.sin(targetRot.yaw || 0);
   const cosY = Math.cos(targetRot.yaw || 0);
 
@@ -715,7 +617,6 @@ function animate() {
   targetPos.z += (forward * cosY + right * sinY) * speed;
   targetPos.y += up * speed;
 
-  // Interpolación suave de posición y rotación
   cameraPos.x = lerp(cameraPos.x, targetPos.x, SMOOTHNESS);
   cameraPos.y = lerp(cameraPos.y, targetPos.y, SMOOTHNESS);
   cameraPos.z = lerp(cameraPos.z, targetPos.z, SMOOTHNESS);
@@ -723,39 +624,29 @@ function animate() {
   cameraRotation.yaw = lerp(cameraRotation.yaw, targetRot.yaw || 0, SMOOTHNESS);
   cameraRotation.pitch = lerp(cameraRotation.pitch, targetRot.pitch || 0, SMOOTHNESS);
 
-  // aplicar rotación con inercia amortiguada
   cameraRotation.yaw += rotInertia.yaw * delta;
   cameraRotation.pitch += rotInertia.pitch * delta;
   rotInertia.yaw *= Math.pow(INERTIA_DAMP, delta * 60);
   rotInertia.pitch *= Math.pow(INERTIA_DAMP, delta * 60);
 
-  // evitar NaN
   if (!isFinite(cameraRotation.yaw)) cameraRotation.yaw = 0;
   if (!isFinite(cameraRotation.pitch)) cameraRotation.pitch = 0;
 
-  // Actualizar posición y orientación
   camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-  // usar lookAt + small rotation offset to keep stable orientation
   const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(cameraRotation.pitch, cameraRotation.yaw, 0, "YXZ"));
-  camera.quaternion.slerp(quat, 0.5); // suaviza la orientación
+  camera.quaternion.slerp(quat, 0.5);
 
-  // Animación de galaxias, estrellas, etc. + efectos visuales
   const t = performance.now() * 0.001;
   galaxies.forEach((g, idx) => {
-    // girar anillos si existen (preservando tu lógica)
     if (g.ring1) g.ring1.rotation.z += 0.001 * (1 + idx * 0.2);
     if (g.ring2) g.ring2.rotation.z -= 0.001 * (1 + idx * 0.2);
     if (g.ring3) g.ring3.rotation.z += 0.0005 * (1 + idx * 0.2);
 
-    // twinkle sutil de las estrellas de la galaxia (si existe)
     if (g.stars && g.stars.material) {
       const base = g.stars.userData?.baseOpacity ?? 0.8;
       g.stars.material.opacity = base * (0.75 + 0.25 * Math.sin(t * 1.5 + (g.stars.userData?.twinkleOffset || 0)));
-      // opcional: variar tamaño levemente para efecto parpadeo
-      // g.stars.material.size = 1.8 + 0.6 * Math.sin(t * 2 + idx);
     }
 
-    // animación texto flotante y fotos (preserva tu lógica)
     if (g.textGroup && g.textGroup.children) {
       g.textGroup.children.forEach(s => {
         s.userData.theta += s.userData.speed;
@@ -763,7 +654,6 @@ function animate() {
         s.position.z = s.userData.radius * Math.sin(s.userData.phi) * Math.sin(s.userData.theta);
         const scalePulse = 1 + 0.15 * Math.sin(performance.now() * 0.001 * s.userData.pulseSpeed + s.userData.pulseOffset);
         s.scale.set(45 * scalePulse, 14 * scalePulse, 1);
-        // brillo sutil
         if (s.material) s.material.opacity = 0.85 + 0.15 * Math.sin(t * 2 + s.userData.pulseOffset);
       });
     }
@@ -780,13 +670,18 @@ function animate() {
     }
   });
 
-  // pulso de la luz dinámica para efecto visual
   dynLight.intensity = 0.45 + 0.15 * Math.sin(t * 0.8);
 
-  // render
   renderer.render(scene, camera);
 }
 
 animate();
+
+// Responsive
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 
 // === FIN DEL CÓDIGO ===
