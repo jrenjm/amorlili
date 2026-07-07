@@ -545,11 +545,15 @@ canvas.addEventListener("mousemove", e => {
   lastY = e.clientY;
 });
 
-// === Zoom con rueda ===
+// === Zoom con rueda (se mueve hacia donde estás mirando, no solo en Z) ===
 canvas.addEventListener("wheel", e => {
   e.preventDefault();
-  targetPos.z += e.deltaY * ZOOM_SENSITIVITY * (isMobile ? 0.6 : 1);
-  targetPos.z = Math.max(-8000, Math.min(8000, targetPos.z));
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const amount = -e.deltaY * ZOOM_SENSITIVITY * (isMobile ? 0.6 : 1);
+  targetPos.x += dir.x * amount;
+  targetPos.y += dir.y * amount;
+  targetPos.z += dir.z * amount;
+  clampTargetPos();
 });
 
 // === Control táctil (rotación + zoom multitáctil) ===
@@ -594,6 +598,21 @@ canvas.addEventListener("touchmove", e => {
 // === Función para interpolar suavemente ===
 function lerp(a, b, t) {
   return a + (b - a) * t;
+}
+
+// Límites de distancia respecto al centro del universo,
+// para no perderte demasiado lejos ni atravesar los objetos
+const MIN_DIST = 60;
+const MAX_DIST = 9000;
+function clampTargetPos() {
+  const dist = Math.hypot(targetPos.x, targetPos.y, targetPos.z);
+  if (dist > MAX_DIST) {
+    const scale = MAX_DIST / dist;
+    targetPos.x *= scale; targetPos.y *= scale; targetPos.z *= scale;
+  } else if (dist < MIN_DIST && dist > 0) {
+    const scale = MIN_DIST / dist;
+    targetPos.x *= scale; targetPos.y *= scale; targetPos.z *= scale;
+  }
 }
 
 // ===== Animación principal mejorada =====
